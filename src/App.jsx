@@ -7,6 +7,7 @@ import Friends from './views/Friends';
 import PrivateRooms from './views/PrivateRooms';
 import AICoach from './views/AICoach';
 import Leaderboards from './views/Leaderboards';
+import Problems from './views/Problems';
 import Settings from './views/Settings';
 import Auth from './views/Auth';
 
@@ -45,6 +46,7 @@ const App = () => {
           {activeTab === 'friends' && <Friends />}
           {activeTab === 'rooms' && <PrivateRooms />}
           {activeTab === 'coach' && <AICoach />}
+          {activeTab === 'problems' && <Problems />}
           {activeTab === 'leaderboard' && <Leaderboards />}
           {activeTab === 'settings' && <Settings isDark={isDark} setIsDark={setIsDark} setActiveTab={setActiveTab} />}
         </div>

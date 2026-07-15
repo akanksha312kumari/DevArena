@@ -38,6 +38,59 @@ const userSchema = new mongoose.Schema(
       codechef: { type: String, default: '' },
       atcoder: { type: String, default: '' },
       hackerrank: { type: String, default: '' },
+      gfg: { type: String, default: '' },
+    },
+    lastSynced: {
+      codeforces: { type: Date, default: null },
+      leetcode: { type: Date, default: null },
+      codechef: { type: Date, default: null },
+      atcoder: { type: Date, default: null },
+      hackerrank: { type: Date, default: null },
+      gfg: { type: Date, default: null },
+    },
+    platformStats: {
+      codeforces: {
+        rating: { type: Number, default: 0 },
+        problemsSolved: { easy: { type: Number, default: 0 }, medium: { type: Number, default: 0 }, hard: { type: Number, default: 0 }, total: { type: Number, default: 0 } },
+        streak: { type: Number, default: 0 },
+        maxStreak: { type: Number, default: 0 },
+        contests: { type: Number, default: 0 }
+      },
+      leetcode: {
+        rating: { type: Number, default: 0 },
+        problemsSolved: { easy: { type: Number, default: 0 }, medium: { type: Number, default: 0 }, hard: { type: Number, default: 0 }, total: { type: Number, default: 0 } },
+        streak: { type: Number, default: 0 },
+        maxStreak: { type: Number, default: 0 },
+        contests: { type: Number, default: 0 }
+      },
+      codechef: {
+        rating: { type: Number, default: 0 },
+        problemsSolved: { easy: { type: Number, default: 0 }, medium: { type: Number, default: 0 }, hard: { type: Number, default: 0 }, total: { type: Number, default: 0 } },
+        streak: { type: Number, default: 0 },
+        maxStreak: { type: Number, default: 0 },
+        contests: { type: Number, default: 0 }
+      },
+      atcoder: {
+        rating: { type: Number, default: 0 },
+        problemsSolved: { easy: { type: Number, default: 0 }, medium: { type: Number, default: 0 }, hard: { type: Number, default: 0 }, total: { type: Number, default: 0 } },
+        streak: { type: Number, default: 0 },
+        maxStreak: { type: Number, default: 0 },
+        contests: { type: Number, default: 0 }
+      },
+      hackerrank: {
+        rating: { type: Number, default: 0 },
+        problemsSolved: { easy: { type: Number, default: 0 }, medium: { type: Number, default: 0 }, hard: { type: Number, default: 0 }, total: { type: Number, default: 0 } },
+        streak: { type: Number, default: 0 },
+        maxStreak: { type: Number, default: 0 },
+        contests: { type: Number, default: 0 }
+      },
+      gfg: {
+        rating: { type: Number, default: 0 },
+        problemsSolved: { easy: { type: Number, default: 0 }, medium: { type: Number, default: 0 }, hard: { type: Number, default: 0 }, total: { type: Number, default: 0 } },
+        streak: { type: Number, default: 0 },
+        maxStreak: { type: Number, default: 0 },
+        contests: { type: Number, default: 0 }
+      }
     },
     stats: {
       globalRating: { type: Number, default: 0 },
@@ -45,8 +98,11 @@ const userSchema = new mongoose.Schema(
         easy: { type: Number, default: 0 },
         medium: { type: Number, default: 0 },
         hard: { type: Number, default: 0 },
+        total: { type: Number, default: 0 },
       },
       dailyStreak: { type: Number, default: 0 },
+      maxStreak: { type: Number, default: 0 },
+      totalContests: { type: Number, default: 0 }
     },
     friends: [
       {

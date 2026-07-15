@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const { syncCodeforces, syncLeetCode } = require('../controllers/platformController');
+const { syncPlatformData, syncAllPlatformsData } = require('../controllers/platformController');
 const { protect } = require('../middleware/authMiddleware');
 
-router.post('/codeforces', protect, syncCodeforces);
-router.post('/leetcode', protect, syncLeetCode);
+router.post('/sync-all', protect, syncAllPlatformsData);
+router.post('/:platform', protect, syncPlatformData);
 
 module.exports = router;

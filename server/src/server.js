@@ -1,4 +1,5 @@
 require('dotenv').config();
+// Trigger restart for nodemon
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
@@ -10,6 +11,7 @@ const platformRoutes = require('./routes/platform.routes');
 const roomRoutes = require('./routes/room.routes');
 const leaderboardRoutes = require('./routes/leaderboard.routes');
 const aiRoutes = require('./routes/ai.routes');
+const problemRoutes = require('./routes/problem.routes');
 
 // Connect to database
 // Note: We only connect if MONGO_URI is set, to avoid crashing if it's not set up yet
@@ -36,6 +38,7 @@ app.use('/api/platforms', platformRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/problems', problemRoutes);
 
 const http = require('http');
 const initSocket = require('./socket');

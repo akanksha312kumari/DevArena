@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Swords, Users, Bot, Trophy, Code2, Settings, Hash } from 'lucide-react';
+import { LayoutDashboard, Swords, Users, Bot, Trophy, Code2, Settings, Hash, Target } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
@@ -10,6 +10,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
     { id: 'friends', label: 'Friends', icon: Users },
     { id: 'rooms', label: 'Private Rooms', icon: Hash },
     { id: 'coach', label: 'AI Coach', icon: Bot },
+    { id: 'problems', label: 'Problems', icon: Target },
     { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
   ];
 

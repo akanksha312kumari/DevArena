@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flame, Target, Trophy, Activity, TrendingUp, Swords } from 'lucide-react';
+import { Flame, Target, Trophy, Activity, TrendingUp, Swords, Code, ExternalLink } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../context/AuthContext';
 
@@ -64,7 +64,7 @@ const Dashboard = () => {
             <Target size={20} color="var(--accent-danger)" />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ fontSize: '2.5rem', fontWeight: 700 }}>{stats.problemsSolved.easy + stats.problemsSolved.medium + stats.problemsSolved.hard}</div>
+            <div style={{ fontSize: '2.5rem', fontWeight: 700 }}>{stats.problemsSolved.total || (stats.problemsSolved.easy + stats.problemsSolved.medium + stats.problemsSolved.hard)}</div>
             <div style={{ width: '80px', height: '80px' }}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -84,6 +84,45 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      {user?.platformStats && Object.keys(user.platformStats).length > 0 && (
+        <>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginTop: '2rem', marginBottom: '1rem' }}>Platform Breakdown</h3>
+          <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))' }}>
+            {Object.entries(user.platformStats).map(([platform, pStats]) => {
+              if (!pStats || (pStats.problemsSolved?.total === 0 && pStats.rating === 0)) return null;
+              return (
+                <div key={platform} className="card">
+                  <div className="flex items-center justify-between" style={{ marginBottom: '1rem', textTransform: 'capitalize' }}>
+                    <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Code size={18} color="var(--accent-primary)" />
+                      {platform}
+                    </div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Rating</div>
+                      <div style={{ fontWeight: 600 }}>{pStats.rating || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Solved</div>
+                      <div style={{ fontWeight: 600 }}>{pStats.problemsSolved?.total || 0}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Streak</div>
+                      <div style={{ fontWeight: 600 }}>{pStats.streak || 0}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Contests</div>
+                      <div style={{ fontWeight: 600 }}>{pStats.contests || 0}</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
 
       <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginTop: '2rem', marginBottom: '1rem' }}>Recent Activity</h3>
       <div className="card flex flex-col gap-4">

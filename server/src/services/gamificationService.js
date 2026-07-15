@@ -1,122 +1,111 @@
-const User = require('../models/User');
+class GamificationService {
+  /**
+   * Process newly solved problems to award XP and update universal streak.
+   * @param {Object} user - The user document (Mongoose)
+   * @param {number} oldTotal - Total problems solved before sync
+   * @param {number} newTotal - Total problems solved after sync
+   */
+  async processProblemSolvingActivity(user, oldTotal, newTotal) {
+    if (newTotal <= oldTotal) return; // No new problems solved
 
-const XP_THRESHOLDS = [0, 100, 300, 600, 1000, 1500, 2100, 2800, 3600, 4500, 5500];
+    const newProblemsCount = newTotal - oldTotal;
+    
+    // Award XP (10 XP per problem)
+    const earnedXp = newProblemsCount * 10;
+    this.awardXP(user, earnedXp, `Solved ${newProblemsCount} new problem(s)`);
 
-const getLevelForXP = (xp) => {
-  let level = 1;
-  for (let i = 0; i < XP_THRESHOLDS.length; i++) {
-    if (xp >= XP_THRESHOLDS[i]) {
-      level = i + 1;
-    } else {
-      break;
-    }
+    // Update Universal Streak
+    this.updateStreak(user);
+
+    // Check Badges
+    this.checkBadges(user);
   }
-  return level;
-};
 
-const addActivity = (user, type, title, description) => {
-  // Prevent duplicate activities of the same type within last 24 hours (for things like streak)
-  if (type === 'streak') {
-    const today = new Date();
-    const hasRecentStreak = user.activityFeed.some(a => 
-      a.type === 'streak' && 
-      (today.getTime() - new Date(a.timestamp).getTime()) < 24 * 60 * 60 * 1000
-    );
-    if (hasRecentStreak) return false;
-  }
-  
-  user.activityFeed.unshift({ type, title, description, timestamp: new Date() });
-  if (user.activityFeed.length > 50) {
-    user.activityFeed.pop(); // Keep only last 50
-  }
-  return true;
-};
-
-const awardXP = async (userId, amount, reason) => {
-  try {
-    const user = await User.findById(userId);
-    if (!user) return null;
-
-    user.xp += amount;
-    const newLevel = getLevelForXP(user.xp);
-
-    if (newLevel > user.level) {
+  awardXP(user, amount, reason, eventType = 'achievement') {
+    user.xp = (user.xp || 0) + amount;
+    const oldLevel = user.level || 1;
+    const newLevel = Math.floor(user.xp / 100) + 1;
+    
+    if (newLevel > oldLevel) {
       user.level = newLevel;
-      addActivity(user, 'achievement', `Level Up!`, `You reached Level ${newLevel}!`);
+      this.addActivity(user, 'badge', `Level Up!`, `You reached Level ${newLevel}!`);
     }
 
-    if (reason === 'duel_win') {
-      addActivity(user, 'duel_win', 'Won a Duel!', `Earned ${amount} XP for winning a coding duel.`);
+    if (reason) {
+      this.addActivity(user, eventType, `Earned ${amount} XP`, reason);
     }
-
-    await user.save();
-    return user;
-  } catch (err) {
-    console.error('Error awarding XP:', err);
-    return null;
   }
-};
 
-const updateDailyStreak = async (userId) => {
-  try {
-    const user = await User.findById(userId);
-    if (!user) return null;
-
+  updateStreak(user) {
     const now = new Date();
     const lastActivity = user.lastActivityDate;
     
     if (!lastActivity) {
+      // First activity
       user.stats.dailyStreak = 1;
-      addActivity(user, 'streak', 'Streak Started', 'You started a 1-day coding streak!');
-    } else {
-      const msPerDay = 24 * 60 * 60 * 1000;
-      const diffDays = Math.floor((now.getTime() - lastActivity.getTime()) / msPerDay);
+      user.stats.maxStreak = 1;
+      user.lastActivityDate = now;
+      this.addActivity(user, 'streak', 'Streak Started!', 'You solved your first problem.');
+      return;
+    }
 
-      if (diffDays === 1) {
-        user.stats.dailyStreak += 1;
-        if (user.stats.dailyStreak % 5 === 0) {
-          addActivity(user, 'streak', 'Streak Milestone', `You reached a ${user.stats.dailyStreak}-day streak!`);
-        }
-      } else if (diffDays > 1) {
-        // Lost streak
-        user.stats.dailyStreak = 1;
-        addActivity(user, 'streak', 'Streak Reset', 'You missed a day and started a new streak.');
+    const msPerDay = 1000 * 60 * 60 * 24;
+    // Normalize to UTC midnight for comparison
+    const todayMidnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).getTime();
+    const lastActivityMidnight = new Date(Date.UTC(lastActivity.getUTCFullYear(), lastActivity.getUTCMonth(), lastActivity.getUTCDate())).getTime();
+
+    const diffDays = Math.round((todayMidnight - lastActivityMidnight) / msPerDay);
+
+    if (diffDays === 1) {
+      // Continued streak
+      user.stats.dailyStreak += 1;
+      user.lastActivityDate = now;
+      if (user.stats.dailyStreak > user.stats.maxStreak) {
+        user.stats.maxStreak = user.stats.dailyStreak;
+      }
+      
+      // Milestone check
+      if (user.stats.dailyStreak % 7 === 0) {
+        this.awardXP(user, 50, `7-Day Streak Bonus!`, 'streak');
+      } else {
+        this.addActivity(user, 'streak', 'Streak Continued!', `You are on a ${user.stats.dailyStreak}-day streak.`);
+      }
+    } else if (diffDays > 1) {
+      // Broken streak
+      user.stats.dailyStreak = 1;
+      user.lastActivityDate = now;
+      this.addActivity(user, 'streak', 'Streak Reset', 'You started a new streak today.');
+    }
+    // If diffDays === 0, they already solved a problem today, streak stays the same.
+  }
+
+  checkBadges(user) {
+    if (!user.badges) user.badges = [];
+    const totalSolved = user.stats?.problemsSolved?.total || 0;
+
+    const badgeThresholds = [
+      { name: 'Novice Coder', threshold: 10 },
+      { name: 'Intermediate', threshold: 50 },
+      { name: 'Pro', threshold: 100 },
+      { name: 'Algorithm Master', threshold: 500 }
+    ];
+
+    for (const badge of badgeThresholds) {
+      if (totalSolved >= badge.threshold && !user.badges.includes(badge.name)) {
+        user.badges.push(badge.name);
+        this.addActivity(user, 'badge', `Badge Unlocked: ${badge.name}`, `You solved ${badge.threshold} problems!`);
       }
     }
-    
-    user.lastActivityDate = now;
-    await user.save();
-    return user;
-  } catch (err) {
-    console.error('Error updating streak:', err);
-    return null;
-  }
-};
-
-const checkAndAwardBadges = async (user) => {
-  let modified = false;
-  
-  if (user.stats.dailyStreak >= 7 && !user.badges.includes('7-Day Scholar')) {
-    user.badges.push('7-Day Scholar');
-    addActivity(user, 'badge', 'Badge Unlocked: 7-Day Scholar', 'Maintain a 7-day coding streak.');
-    modified = true;
   }
 
-  if (user.xp >= 1000 && !user.badges.includes('XP Millionaire')) {
-    user.badges.push('XP Millionaire');
-    addActivity(user, 'badge', 'Badge Unlocked: XP Millionaire', 'Earn 1000 XP.');
-    modified = true;
+  addActivity(user, type, title, description) {
+    if (!user.activityFeed) user.activityFeed = [];
+    user.activityFeed.unshift({ type, title, description, timestamp: new Date() });
+    // Keep only the last 20 activities
+    if (user.activityFeed.length > 20) {
+      user.activityFeed = user.activityFeed.slice(0, 20);
+    }
   }
+}
 
-  if (modified) {
-    await user.save();
-  }
-  return user;
-};
-
-module.exports = {
-  awardXP,
-  updateDailyStreak,
-  checkAndAwardBadges,
-  getLevelForXP
-};
+module.exports = new GamificationService();

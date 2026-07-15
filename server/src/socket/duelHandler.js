@@ -1,6 +1,6 @@
 const axios = require('axios');
 const User = require('../models/User');
-const { awardXP, updateDailyStreak } = require('../services/gamificationService');
+const gamificationService = require('../services/gamificationService');
 
 const activeDuels = new Map(); // duelId -> duel state
 
@@ -129,13 +129,15 @@ const handleDuelWin = (io, duel, winnerId) => {
   duel.status = 'finished';
   duel.winner = winnerId;
   
-  // Since async, don't wait to emit event
-  awardXP(winnerId, 50, 'duel_win').then(user => {
+  User.findById(winnerId).then(user => {
     if (user) {
-      io.to(winnerId).emit('xp_awarded', { amount: 50, reason: 'Won a duel!' });
+      gamificationService.awardXP(user, 100, 'Won a duel!', 'duel_win');
+      gamificationService.updateStreak(user);
+      user.save().then(() => {
+        io.to(winnerId).emit('xp_awarded', { amount: 100, reason: 'Won a duel!' });
+      });
     }
-  });
-  updateDailyStreak(winnerId);
+  }).catch(err => console.error('Error awarding XP for duel:', err));
   
   io.to(duel.id).emit('duel_finished', {
     winner: winnerId,
