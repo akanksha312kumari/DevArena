@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from './context/AuthContext';
 import Sidebar from './components/Sidebar';
 import Dashboard from './views/Dashboard';
 import LiveDuels from './views/LiveDuels';
-import PrivateRooms from './views/PrivateRooms';
+import Friends from './views/Friends';
 import AICoach from './views/AICoach';
 import Leaderboards from './views/Leaderboards';
 import Settings from './views/Settings';
+import Auth from './views/Auth';
 
-function App() {
+const App = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isDark, setIsDark] = useState(false);
+  const { user, loading } = useAuth();
 
   useEffect(() => {
     if (isDark) {
@@ -19,33 +22,33 @@ function App() {
     }
   }, [isDark]);
 
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'dashboard':
-        return <Dashboard />;
-      case 'duels':
-        return <LiveDuels />;
-      case 'rooms':
-        return <PrivateRooms />;
-      case 'coach':
-        return <AICoach />;
-      case 'leaderboards':
-        return <Leaderboards />;
-      case 'settings':
-        return <Settings isDark={isDark} setIsDark={setIsDark} setActiveTab={setActiveTab} />;
-      default:
-        return <Dashboard />;
-    }
-  };
+  if (loading) return <div>Loading...</div>;
+
+  if (!user) return <Auth />;
 
   return (
     <div className="app-container">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      
       <main className="main-content">
-        {renderContent()}
+        <header style={{ display: 'flex', justifyContent: 'flex-end', padding: '1rem', borderBottom: '1px solid var(--card-border)' }}>
+          <div className="flex items-center gap-4">
+            <span>{user.username}</span>
+            <img src={user.profile?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=default"} alt="Profile" style={{ width: '40px', height: '40px', borderRadius: '50%' }} />
+          </div>
+        </header>
+
+        <div className="content-area">
+          {activeTab === 'dashboard' && <Dashboard />}
+          {activeTab === 'duels' && <LiveDuels />}
+          {activeTab === 'friends' && <Friends />}
+          {activeTab === 'coach' && <AICoach />}
+          {activeTab === 'leaderboard' && <Leaderboards />}
+          {activeTab === 'settings' && <Settings isDark={isDark} setIsDark={setIsDark} setActiveTab={setActiveTab} />}
+        </div>
       </main>
     </div>
   );
-}
+};
 
 export default App;

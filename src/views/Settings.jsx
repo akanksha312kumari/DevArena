@@ -1,13 +1,79 @@
 import React, { useState } from 'react';
-import { Moon, Sun, Link as LinkIcon, Unlink, LogOut, AlertTriangle } from 'lucide-react';
+import { Moon, Sun, Link as LinkIcon, Unlink, LogOut, AlertTriangle, Save } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const Settings = ({ isDark, setIsDark, setActiveTab }) => {
+  const { user, logout, setUser } = useAuth();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [formData, setFormData] = useState({
+    username: user?.username || '',
+    bio: user?.profile?.bio || '',
+    codeforces: user?.platforms?.codeforces || '',
+    leetcode: user?.platforms?.leetcode || ''
+  });
+  const [message, setMessage] = useState('');
 
   const handleLogout = () => {
-    // In a real app, clear tokens, context, etc.
-    setActiveTab('dashboard'); // Redirect to dashboard or login
+    logout();
     setShowLogoutConfirm(false);
+  };
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/users/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          username: formData.username,
+          bio: formData.bio,
+          platforms: {
+            codeforces: formData.codeforces,
+            leetcode: formData.leetcode
+          }
+        })
+      });
+      if (res.ok) {
+        const updatedUser = await res.json();
+        setUser(updatedUser);
+        setMessage('Profile updated successfully!');
+        setTimeout(() => setMessage(''), 3000);
+      } else {
+        setMessage('Failed to update profile.');
+      }
+    } catch (err) {
+      setMessage('Error updating profile.');
+    }
+  };
+
+  const handleSync = async (platform) => {
+    setMessage(`Syncing ${platform}...`);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/platforms/${platform}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setUser(prev => ({ ...prev, stats: data.stats }));
+        setMessage(`${platform} synced successfully!`);
+      } else {
+        setMessage(data.message || `Failed to sync ${platform}`);
+      }
+    } catch (err) {
+      setMessage(`Error syncing ${platform}`);
+    }
+    setTimeout(() => setMessage(''), 3000);
   };
 
   return (
@@ -17,51 +83,52 @@ const Settings = ({ isDark, setIsDark, setActiveTab }) => {
         <p style={{ color: 'var(--text-secondary)' }}>Manage your profile, preferences, and connected accounts.</p>
       </header>
 
+      {message && <div style={{ padding: '1rem', background: 'var(--accent-success)', color: 'white', borderRadius: '8px', marginBottom: '1rem' }}>{message}</div>}
+
       <div className="flex flex-col gap-6">
         {/* Profile Info Card */}
         <section className="card">
           <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1.5rem' }}>Profile Information</h3>
           
           <div className="flex items-center gap-4" style={{ marginBottom: '1.5rem' }}>
-            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=tourist_fanboy" alt="User Avatar" style={{ width: 80, height: 80, borderRadius: '50%', border: '2px solid var(--accent-primary)' }} />
-            <button className="btn btn-outline">Change Avatar</button>
+            <img src={user?.profile?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=default"} alt="User Avatar" style={{ width: 80, height: 80, borderRadius: '50%', border: '2px solid var(--accent-primary)' }} />
           </div>
 
           <div style={{ display: 'grid', gap: '1rem', marginBottom: '2rem' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Username</label>
-              <input type="text" defaultValue="tourist_fanboy" style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--card-border)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
+              <input type="text" name="username" value={formData.username} onChange={handleChange} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--card-border)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Bio</label>
-              <textarea defaultValue="Competitive programmer. Coffee addict." rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--card-border)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
+              <textarea name="bio" value={formData.bio} onChange={handleChange} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--card-border)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
             </div>
           </div>
 
           <h4 style={{ fontWeight: 600, marginBottom: '1rem' }}>Connected Accounts</h4>
-          <div style={{ display: 'grid', gap: '1rem' }}>
-            {[
-              { name: 'LeetCode', connected: true },
-              { name: 'Codeforces', connected: true },
-              { name: 'HackerRank', connected: false }
-            ].map(platform => (
-              <div key={platform.name} className="flex items-center justify-between" style={{ padding: '1rem', border: '1px solid var(--card-border)', borderRadius: '8px', background: 'var(--bg-secondary)' }}>
-                <div className="flex items-center gap-3">
-                  <LinkIcon size={20} color="var(--text-muted)" />
-                  <span style={{ fontWeight: 500 }}>{platform.name}</span>
-                </div>
-                {platform.connected ? (
-                  <button className="btn btn-outline" style={{ color: 'var(--accent-danger)', borderColor: 'var(--accent-danger)' }}>
-                    <Unlink size={16} /> Disconnect
-                  </button>
-                ) : (
-                  <button className="btn btn-primary">
-                    Connect
-                  </button>
-                )}
+          <div style={{ display: 'grid', gap: '1rem', marginBottom: '2rem' }}>
+            <div className="flex items-center justify-between" style={{ padding: '1rem', border: '1px solid var(--card-border)', borderRadius: '8px', background: 'var(--bg-secondary)' }}>
+              <div className="flex items-center gap-3">
+                <LinkIcon size={20} color="var(--text-muted)" />
+                <span style={{ fontWeight: 500 }}>LeetCode</span>
               </div>
-            ))}
+              <div className="flex items-center gap-3">
+                <input type="text" name="leetcode" value={formData.leetcode} onChange={handleChange} placeholder="Handle" style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--card-border)' }} />
+                <button className="btn btn-outline" onClick={() => handleSync('leetcode')}>Sync</button>
+              </div>
+            </div>
+            <div className="flex items-center justify-between" style={{ padding: '1rem', border: '1px solid var(--card-border)', borderRadius: '8px', background: 'var(--bg-secondary)' }}>
+              <div className="flex items-center gap-3">
+                <LinkIcon size={20} color="var(--text-muted)" />
+                <span style={{ fontWeight: 500 }}>Codeforces</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <input type="text" name="codeforces" value={formData.codeforces} onChange={handleChange} placeholder="Handle" style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--card-border)' }} />
+                <button className="btn btn-outline" onClick={() => handleSync('codeforces')}>Sync</button>
+              </div>
+            </div>
           </div>
+          <button className="btn btn-primary" onClick={handleSaveProfile}><Save size={20} /> Save Profile Changes</button>
         </section>
 
         {/* Display Preferences */}
@@ -114,7 +181,7 @@ const Settings = ({ isDark, setIsDark, setActiveTab }) => {
                   <AlertTriangle size={24} />
                   <h3 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Confirm Log Out</h3>
                 </div>
-                <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>Are you sure you want to log out of DevArena? You will need to sign back in to access your profile and duels.</p>
+                <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>Are you sure you want to log out of DevArena?</p>
                 <div className="flex justify-end gap-3">
                   <button className="btn btn-outline" onClick={() => setShowLogoutConfirm(false)}>Cancel</button>
                   <button className="btn" style={{ background: 'var(--accent-danger)', color: 'white' }} onClick={handleLogout}>Log Out</button>

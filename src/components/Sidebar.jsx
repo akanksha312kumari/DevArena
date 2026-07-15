@@ -5,9 +5,9 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'duels', label: 'Live Duels', icon: Swords },
-    { id: 'rooms', label: 'Private Rooms', icon: Users },
+    { id: 'friends', label: 'Friends', icon: Users },
     { id: 'coach', label: 'AI Coach', icon: Bot },
-    { id: 'leaderboards', label: 'Leaderboards', icon: Trophy },
+    { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
   ];
 
   return (
