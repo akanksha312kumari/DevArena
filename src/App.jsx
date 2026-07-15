@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar';
 import Dashboard from './views/Dashboard';
 import LiveDuels from './views/LiveDuels';
 import Friends from './views/Friends';
+import PrivateRooms from './views/PrivateRooms';
 import AICoach from './views/AICoach';
 import Leaderboards from './views/Leaderboards';
 import Settings from './views/Settings';
@@ -42,6 +43,7 @@ const App = () => {
           {activeTab === 'dashboard' && <Dashboard />}
           {activeTab === 'duels' && <LiveDuels />}
           {activeTab === 'friends' && <Friends />}
+          {activeTab === 'rooms' && <PrivateRooms />}
           {activeTab === 'coach' && <AICoach />}
           {activeTab === 'leaderboard' && <Leaderboards />}
           {activeTab === 'settings' && <Settings isDark={isDark} setIsDark={setIsDark} setActiveTab={setActiveTab} />}

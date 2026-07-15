@@ -1,11 +1,14 @@
 import React from 'react';
-import { LayoutDashboard, Swords, Users, Bot, Trophy, Code2, Settings } from 'lucide-react';
+import { LayoutDashboard, Swords, Users, Bot, Trophy, Code2, Settings, Hash } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
+  const { user } = useAuth();
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'duels', label: 'Live Duels', icon: Swords },
     { id: 'friends', label: 'Friends', icon: Users },
+    { id: 'rooms', label: 'Private Rooms', icon: Hash },
     { id: 'coach', label: 'AI Coach', icon: Bot },
     { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
   ];
@@ -46,15 +49,17 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
           <span>Settings</span>
         </button>
 
-        <div className="card" style={{ padding: '1rem', background: 'var(--bg-primary)' }}>
-          <div className="flex items-center gap-2" style={{ marginBottom: '0.5rem' }}>
-            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=tourist_fanboy" alt="User Avatar" style={{ width: 32, height: 32, borderRadius: '50%' }} />
-            <div>
-              <div style={{ fontSize: '0.875rem', fontWeight: 600 }}>tourist_fanboy</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Level 42</div>
+        {user && (
+          <div className="card" style={{ padding: '1rem', background: 'var(--bg-primary)' }}>
+            <div className="flex items-center gap-2" style={{ marginBottom: '0.5rem' }}>
+              <img src={user.profile?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=default"} alt="User Avatar" style={{ width: 32, height: 32, borderRadius: '50%' }} />
+              <div>
+                <div style={{ fontSize: '0.875rem', fontWeight: 600 }}>{user.username}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Level 1</div>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </aside>
   );

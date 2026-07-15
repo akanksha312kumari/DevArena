@@ -7,6 +7,7 @@ const healthRoutes = require('./routes/health.routes');
 const authRoutes = require('./routes/auth.routes');
 const userRoutes = require('./routes/user.routes');
 const platformRoutes = require('./routes/platform.routes');
+const roomRoutes = require('./routes/room.routes');
 
 // Connect to database
 // Note: We only connect if MONGO_URI is set, to avoid crashing if it's not set up yet
@@ -30,12 +31,22 @@ app.use('/api/health', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/platforms', platformRoutes);
+app.use('/api/rooms', roomRoutes);
+
+const http = require('http');
+const initSocket = require('./socket');
 
 // Error Handler Middleware
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+// Create HTTP Server
+const server = http.createServer(app);
+
+// Initialize Socket.IO
+initSocket(server);
+
+server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
