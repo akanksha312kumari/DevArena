@@ -8,6 +8,8 @@ const authRoutes = require('./routes/auth.routes');
 const userRoutes = require('./routes/user.routes');
 const platformRoutes = require('./routes/platform.routes');
 const roomRoutes = require('./routes/room.routes');
+const leaderboardRoutes = require('./routes/leaderboard.routes');
+const aiRoutes = require('./routes/ai.routes');
 
 // Connect to database
 // Note: We only connect if MONGO_URI is set, to avoid crashing if it's not set up yet
@@ -32,6 +34,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/platforms', platformRoutes);
 app.use('/api/rooms', roomRoutes);
+app.use('/api/leaderboard', leaderboardRoutes);
+app.use('/api/ai', aiRoutes);
 
 const http = require('http');
 const initSocket = require('./socket');

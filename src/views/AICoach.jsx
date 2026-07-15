@@ -15,15 +15,40 @@ const AICoach = () => {
   const [messages, setMessages] = useState([
     { role: 'assistant', content: "Hello! I'm your DevArena AI Coach. Based on your stats, you're crushing Trees and Graphs, but Dynamic Programming could use some work. How can I help you today?" }
   ]);
+  const [loading, setLoading] = useState(false);
   const [input, setInput] = useState('');
 
-  const handleSend = (text) => {
-    if (!text.trim()) return;
-    setMessages([...messages, { role: 'user', content: text }]);
+  const handleSend = async (text) => {
+    if (!text.trim() || loading) return;
+    
+    const newMessages = [...messages, { role: 'user', content: text }];
+    setMessages(newMessages);
     setInput('');
-    setTimeout(() => {
-      setMessages(prev => [...prev, { role: 'assistant', content: "I'm analyzing your request... (This is a mock prototype response!)" }]);
-    }, 1000);
+    setLoading(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/ai/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ messages: newMessages })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setMessages(prev => [...prev, { role: 'assistant', content: data.content }]);
+      } else {
+        setMessages(prev => [...prev, { role: 'assistant', content: "Sorry, I'm having trouble connecting right now." }]);
+      }
+    } catch (error) {
+      console.error(error);
+      setMessages(prev => [...prev, { role: 'assistant', content: "An error occurred while connecting to the AI Coach." }]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -82,19 +107,20 @@ const AICoach = () => {
               <Sparkles size={14} /> Give me a DP roadmap for interview prep
             </button>
           </div>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSend(input)}
-              placeholder="Ask your coach anything..."
-              style={{ flex: 1, padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid var(--card-border)', outline: 'none' }}
-            />
-            <button className="btn btn-primary" onClick={() => handleSend(input)}>
-              <Send size={20} />
-            </button>
-          </div>
+              <div className="flex gap-2">
+                <input 
+                  type="text" 
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Ask me anything..." 
+                  style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--card-border)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} 
+                  onKeyDown={(e) => e.key === 'Enter' && handleSend(input)}
+                  disabled={loading}
+                />
+                <button className="btn btn-primary" onClick={() => handleSend(input)} disabled={loading}>
+                  <Send size={20} />
+                </button>
+              </div>
         </div>
       </div>
     </div>

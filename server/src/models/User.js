@@ -60,6 +60,25 @@ const userSchema = new mongoose.Schema(
         ref: 'User',
       },
     ],
+    xp: { type: Number, default: 0 },
+    level: { type: Number, default: 1 },
+    badges: [{ type: String }],
+    achievements: [
+      {
+        name: { type: String, required: true },
+        description: { type: String, required: true },
+        unlockedAt: { type: Date, default: Date.now },
+      },
+    ],
+    activityFeed: [
+      {
+        type: { type: String, enum: ['duel_win', 'streak', 'badge', 'rating', 'achievement'], required: true },
+        title: { type: String, required: true },
+        description: { type: String, required: true },
+        timestamp: { type: Date, default: Date.now },
+      },
+    ],
+    lastActivityDate: { type: Date, default: null },
   },
   { timestamps: true }
 );

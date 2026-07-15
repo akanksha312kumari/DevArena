@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flame, Target, Trophy, Activity, TrendingUp } from 'lucide-react';
+import { Flame, Target, Trophy, Activity, TrendingUp, Swords } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../context/AuthContext';
 
@@ -18,8 +18,16 @@ const Dashboard = () => {
     <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
       <div className="dashboard-grid">
         <div className="card" style={{ gridColumn: '1 / -1', background: 'linear-gradient(135deg, var(--accent-primary), #3B82F6)', color: 'white' }}>
-          <h2 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.5rem' }}>Welcome back, {user?.username}! 🚀</h2>
-          <p style={{ opacity: 0.9 }}>Your skills are sharpening. You're in the top 15% of your university.</p>
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.5rem' }}>Welcome back, {user?.username}! 🚀</h2>
+              <p style={{ opacity: 0.9 }}>Your skills are sharpening. Keep up the good work!</p>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: '1.25rem', fontWeight: 700 }}>Level {user?.level || 1}</div>
+              <div style={{ fontSize: '0.875rem', opacity: 0.9 }}>{user?.xp || 0} XP</div>
+            </div>
+          </div>
         </div>
 
         <div className="card flex flex-col justify-between">
@@ -77,27 +85,31 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Recent Activity */}
       <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginTop: '2rem', marginBottom: '1rem' }}>Recent Activity</h3>
       <div className="card flex flex-col gap-4">
-        {[
-          { icon: Target, title: "Solved 'Two Sum' on LeetCode", time: '2 hours ago', color: '#10B981' },
-          { icon: Trophy, title: 'Placed Top 5% in Codeforces Round #999', time: 'Yesterday', color: 'var(--accent-primary)' },
-          { icon: Activity, title: "Earned 'Binary Beast' Badge", time: '2 days ago', color: 'var(--accent-streak)' },
-        ].map((item, i) => {
-          const Icon = item.icon;
-          return (
-            <div key={i} className="flex items-center gap-4" style={{ paddingBottom: i !== 2 ? '1rem' : '0', borderBottom: i !== 2 ? '1px solid var(--card-border)' : 'none' }}>
-              <div style={{ background: `${item.color}15`, padding: '0.75rem', borderRadius: '50%', color: item.color }}>
-                <Icon size={20} />
+        {(!user?.activityFeed || user.activityFeed.length === 0) ? (
+          <div style={{ color: 'var(--text-muted)' }}>No recent activity. Win a duel or start a streak to earn XP!</div>
+        ) : (
+          user.activityFeed.slice(0, 5).map((item, i) => {
+            let Icon = Activity;
+            let color = 'var(--text-primary)';
+            if (item.type === 'duel_win') { Icon = Swords; color = 'var(--accent-success)'; }
+            if (item.type === 'streak') { Icon = Flame; color = 'var(--accent-streak)'; }
+            if (item.type === 'badge' || item.type === 'achievement') { Icon = Trophy; color = 'var(--accent-primary)'; }
+            
+            return (
+              <div key={i} className="flex items-center gap-4" style={{ paddingBottom: i !== Math.min(user.activityFeed.length, 5) - 1 ? '1rem' : '0', borderBottom: i !== Math.min(user.activityFeed.length, 5) - 1 ? '1px solid var(--card-border)' : 'none' }}>
+                <div style={{ background: `${color}15`, padding: '0.75rem', borderRadius: '50%', color: color }}>
+                  <Icon size={20} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 500 }}>{item.title}</div>
+                  <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>{item.description} • {new Date(item.timestamp).toLocaleDateString()}</div>
+                </div>
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 500 }}>{item.title}</div>
-                <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>{item.time}</div>
-              </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
     </div>
   );

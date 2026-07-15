@@ -12,35 +12,58 @@ const Friends = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [message, setMessage] = useState('');
 
+  // Challenge Modal State
+  const [showChallengeModal, setShowChallengeModal] = useState(false);
+  const [challengeTarget, setChallengeTarget] = useState(null);
+  const [challengeData, setChallengeData] = useState({
+    platform: 'LeetCode',
+    problemId: '',
+    timeLimit: 30
+  });
+  
+  // Incoming Challenge Modal State
+  const [incomingChallenge, setIncomingChallenge] = useState(null);
+
   useEffect(() => {
     fetchFriends();
     fetchFriendRequests();
     
     if (socket) {
-      socket.on('challenge_received', (data) => {
-        if (window.confirm(`You received a challenge! Do you want to accept? (Time Limit: ${data.timeLimit} mins)`)) {
-          socket.emit('accept_challenge', {
-            senderId: data.senderId,
-            challengeId: data.challengeId,
-            problem: data.problem,
-            timeLimit: data.timeLimit
-          });
-        } else {
-          socket.emit('reject_challenge', { senderId: data.senderId });
-        }
-      });
-      
-      socket.on('challenge_rejected', (data) => {
+      const onChallengeReceived = (data) => {
+        setIncomingChallenge(data);
+      };
+
+      const onChallengeRejected = (data) => {
         setMessage(data.message);
         setTimeout(() => setMessage(''), 3000);
-      });
+      };
+
+      socket.on('challenge_received', onChallengeReceived);
+      socket.on('challenge_rejected', onChallengeRejected);
       
       return () => {
-        socket.off('challenge_received');
-        socket.off('challenge_rejected');
+        socket.off('challenge_received', onChallengeReceived);
+        socket.off('challenge_rejected', onChallengeRejected);
       };
     }
   }, [socket]);
+
+  const acceptIncomingChallenge = () => {
+    if (!incomingChallenge) return;
+    socket.emit('accept_challenge', {
+      senderId: incomingChallenge.senderId,
+      challengeId: incomingChallenge.challengeId,
+      problem: incomingChallenge.problem,
+      timeLimit: incomingChallenge.timeLimit
+    });
+    setIncomingChallenge(null);
+  };
+
+  const rejectIncomingChallenge = () => {
+    if (!incomingChallenge) return;
+    socket.emit('reject_challenge', { senderId: incomingChallenge.senderId });
+    setIncomingChallenge(null);
+  };
 
   const fetchFriends = async () => {
     try {
@@ -139,24 +162,35 @@ const Friends = () => {
     }
   };
 
-  const handleChallenge = (targetUserId) => {
-    if (!socket) return;
+  const openChallengeModal = (targetUser) => {
+    setChallengeTarget(targetUser);
+    setShowChallengeModal(true);
+  };
+
+  const handleChallengeSubmit = (e) => {
+    e.preventDefault();
+    if (!socket || !challengeTarget) return;
     
-    // In a real app, this would open a modal to select a problem.
-    // Here we hardcode a problem for demonstration.
+    if (!challengeData.problemId) {
+      setMessage('Please enter a problem name or URL');
+      return;
+    }
+
     const problem = {
-      platform: 'LeetCode',
-      problemId: 'two-sum',
-      title: 'Two Sum',
-      difficulty: 'Easy'
+      platform: challengeData.platform,
+      problemId: challengeData.problemId,
+      title: challengeData.problemId, // Using ID/URL as title for simplicity
+      difficulty: 'Custom'
     };
     
     socket.emit('send_challenge', {
-      targetUserId,
+      targetUserId: challengeTarget._id,
       problem,
-      timeLimit: 15 // 15 minutes
+      timeLimit: parseInt(challengeData.timeLimit)
     });
     
+    setShowChallengeModal(false);
+    setChallengeTarget(null);
     setMessage('Challenge sent!');
     setTimeout(() => setMessage(''), 3000);
   };
@@ -225,26 +259,104 @@ const Friends = () => {
       {friends.length === 0 ? (
         <p style={{ color: 'var(--text-secondary)' }}>You haven't added any friends yet.</p>
       ) : (
-        <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))' }}>
+        <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
           {friends.map(f => (
-            <div key={f._id} className="card flex items-center justify-between gap-4">
+            <div key={f._id} className="card flex flex-col gap-4">
               <div className="flex items-center gap-4">
                 <img src={f.profile?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=default"} alt="Avatar" style={{ width: 48, height: 48, borderRadius: '50%' }} />
                 <div>
                   <h4 style={{ fontWeight: 600 }}>{f.username}</h4>
-                  <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Rating: {f.stats?.globalRating || 0}</div>
+                  <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                    Rating: <span style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>{f.stats?.globalRating || 0}</span>
+                  </div>
                 </div>
               </div>
-              <button 
-                className="btn btn-outline" 
-                style={{ color: 'var(--accent-primary)', borderColor: 'var(--accent-primary)', padding: '0.5rem' }}
-                onClick={() => handleChallenge(f._id)}
-                title="Challenge to Duel"
-              >
-                <Swords size={20} />
+              <button className="btn btn-outline flex items-center justify-center gap-2" onClick={() => openChallengeModal(f)}>
+                <Swords size={16} /> Challenge to Duel
               </button>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Challenge Modal */}
+      {showChallengeModal && challengeTarget && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+        }}>
+          <div className="card" style={{ width: '100%', maxWidth: '400px' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1rem' }}>Challenge {challengeTarget.username}</h3>
+            <form onSubmit={handleChallengeSubmit} className="flex flex-col gap-4">
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Platform</label>
+                <select 
+                  value={challengeData.platform}
+                  onChange={e => setChallengeData({...challengeData, platform: e.target.value})}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--card-border)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                >
+                  <option value="LeetCode">LeetCode</option>
+                  <option value="Codeforces">Codeforces</option>
+                  <option value="CodeChef">CodeChef</option>
+                  <option value="AtCoder">AtCoder</option>
+                  <option value="HackerRank">HackerRank</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Problem URL or Name</label>
+                <input 
+                  type="text" 
+                  required
+                  placeholder="e.g. https://leetcode.com/problems/two-sum/"
+                  value={challengeData.problemId}
+                  onChange={e => setChallengeData({...challengeData, problemId: e.target.value})}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--card-border)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Time Limit (Minutes)</label>
+                <select 
+                  value={challengeData.timeLimit}
+                  onChange={e => setChallengeData({...challengeData, timeLimit: e.target.value})}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--card-border)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                >
+                  <option value="15">15 Minutes</option>
+                  <option value="30">30 Minutes</option>
+                  <option value="45">45 Minutes</option>
+                  <option value="60">60 Minutes</option>
+                </select>
+              </div>
+              <div className="flex gap-2 justify-end mt-2">
+                <button type="button" className="btn btn-outline" onClick={() => setShowChallengeModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary flex items-center gap-2"><Swords size={16} /> Send Challenge</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Incoming Challenge Modal */}
+      {incomingChallenge && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1050
+        }}>
+          <div className="card text-center" style={{ width: '100%', maxWidth: '400px', animation: 'fadeIn 0.3s' }}>
+            <div style={{ padding: '1rem', background: 'rgba(217, 119, 6, 0.1)', borderRadius: '50%', marginBottom: '1rem', color: 'var(--accent-primary)', display: 'inline-block' }}>
+              <Swords size={32} />
+            </div>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>Incoming Duel Challenge!</h3>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+              You have been challenged to solve <strong>{incomingChallenge.problem?.title || 'a problem'}</strong> on <strong>{incomingChallenge.problem?.platform}</strong>.
+            </p>
+            <div style={{ padding: '0.5rem', background: 'var(--bg-secondary)', borderRadius: '8px', marginBottom: '1.5rem', fontSize: '0.875rem' }}>
+              Time Limit: <strong>{incomingChallenge.timeLimit} Minutes</strong>
+            </div>
+            <div className="flex gap-4 justify-center">
+              <button className="btn btn-outline" onClick={rejectIncomingChallenge} style={{ flex: 1, borderColor: 'var(--accent-danger)', color: 'var(--accent-danger)' }}>Decline</button>
+              <button className="btn btn-primary" onClick={acceptIncomingChallenge} style={{ flex: 1 }}>Accept Duel</button>
+            </div>
+          </div>
         </div>
       )}
     </div>
