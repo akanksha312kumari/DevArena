@@ -15,6 +15,8 @@ const LiveDuels = ({ initialDuelData }) => {
   const [claimantId, setClaimantId] = useState(null);
   const [duelHistory, setDuelHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [onlineUsers, setOnlineUsers] = useState([]);
 
   // Fetch duel history from backend
   const fetchDuelHistory = async () => {
@@ -53,12 +55,30 @@ const LiveDuels = ({ initialDuelData }) => {
   useEffect(() => {
     if (!socket) return;
 
+    socket.on('online_users_update', (users) => {
+      const realUsers = users.filter(u => u._id !== user._id);
+      const dummyUsers = [
+        { _id: 'dummy1', username: 'AlexChen_Dev', stats: { rating: 1250 }, profile: { avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=AlexChen' } },
+        { _id: 'dummy2', username: 'SarahCod3s', stats: { rating: 1540 }, profile: { avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah' } },
+        { _id: 'dummy3', username: 'tech_guru99', stats: { rating: 1890 }, profile: { avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=guru' } },
+        { _id: 'dummy4', username: 'byte_ninja', stats: { rating: 1100 }, profile: { avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ninja' } }
+      ];
+      setOnlineUsers([...realUsers, ...dummyUsers]); // Add dummy users for UI purposes
+    });
+
     socket.on('duel_state_update', (data) => {
       setActiveDuel(data);
       setMatchStatus(data.status);
       if (data.status === 'active') {
         setRemainingTime(Math.max(0, Math.floor((data.endTime - Date.now()) / 1000)));
       }
+    });
+
+    socket.on('match_found', (data) => {
+      setIsSearching(false);
+      socket.emit('join_duel', data.id);
+      setActiveDuel(data);
+      setMatchStatus('starting');
     });
 
     socket.on('duel_countdown', (data) => {
@@ -94,7 +114,9 @@ const LiveDuels = ({ initialDuelData }) => {
     });
 
     return () => {
+      socket.off('online_users_update');
       socket.off('duel_state_update');
+      socket.off('match_found');
       socket.off('duel_countdown');
       socket.off('duel_started');
       socket.off('opponent_claimed_victory');
@@ -128,7 +150,15 @@ const LiveDuels = ({ initialDuelData }) => {
     setActiveDuel(null);
   };
 
+  const handleFindRandomMatch = () => {
+    setIsSearching(true);
+    socket.emit('find_random_match');
+  };
 
+  const handleCancelSearch = () => {
+    setIsSearching(false);
+    socket.emit('cancel_match_search');
+  };
 
   if (matchStatus === 'starting') {
     return (
@@ -145,35 +175,52 @@ const LiveDuels = ({ initialDuelData }) => {
 
   // Lobby View
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-      <header style={{ marginBottom: '1.5rem' }}>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.25rem' }}>Live Duels</h2>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Challenge your friends to real-time coding matches.</p>
-      </header>
-
-      <div className="clay-card" style={{ textAlign: 'center', padding: '2rem', marginBottom: '2rem' }}>
-        <div style={{ display: 'inline-flex', padding: '0.75rem', background: 'rgba(217, 119, 6, 0.1)', borderRadius: '50%', marginBottom: '1rem', color: 'var(--accent-primary)' }}>
-          <Swords size={32} />
-        </div>
-        <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>Ready for a Duel?</h3>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', maxWidth: '500px', margin: '0 auto 1.25rem' }}>
-          Head over to the <strong>Friends</strong> tab to challenge someone directly, or wait in the lobby to accept incoming challenges!
-        </p>
-        
-        <div className="clay-recessed" style={{ padding: '0.75rem 1.25rem', display: 'inline-block' }}>
-          <div className="flex items-center gap-2" style={{ color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: 600 }}>
-            <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--accent-success)', display: 'inline-block', boxShadow: 'inset 1px 1px 2px rgba(0,0,0,0.2)' }}></span>
-            Waiting for challenges...
-          </div>
-        </div>
-      </div>
-
-      {/* Duel History */}
+    <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 300px', gap: '2rem' }}>
+      {/* Left Column: Duels */}
       <div>
-        <h3 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Trophy size={18} style={{ color: 'var(--accent-primary)' }} />
-          Match History
-        </h3>
+        <header style={{ marginBottom: '1.5rem' }}>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.25rem' }}>Live Duels</h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Challenge your friends to real-time coding matches.</p>
+        </header>
+
+        <div className="clay-card" style={{ textAlign: 'center', padding: '2rem', marginBottom: '2rem' }}>
+          <div style={{ display: 'inline-flex', padding: '0.75rem', background: 'rgba(217, 119, 6, 0.1)', borderRadius: '50%', marginBottom: '1rem', color: 'var(--accent-primary)' }}>
+            <Swords size={32} />
+          </div>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>Ready for a Duel?</h3>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', maxWidth: '500px', margin: '0 auto 1.25rem' }}>
+            Head over to the <strong>Friends</strong> tab to challenge someone directly, or wait in the lobby to accept incoming challenges! You can also find a random opponent to play against.
+          </p>
+          
+          {isSearching ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', marginTop: '1rem' }}>
+              <div className="flex items-center gap-2" style={{ color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: 600 }}>
+                <span className="spinner" style={{ width: 16, height: 16, border: '2px solid var(--accent-primary)', borderTopColor: 'transparent', borderRadius: '50%', display: 'inline-block', animation: 'spin 1s linear infinite' }}></span>
+                Searching for opponent...
+              </div>
+              <button className="clay-btn-secondary" onClick={handleCancelSearch}>Cancel Search</button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+              <button className="clay-btn-primary" onClick={handleFindRandomMatch} style={{ padding: '0.75rem 2rem', fontSize: '1rem' }}>
+                Find Random Match
+              </button>
+              <div className="clay-recessed" style={{ padding: '0.75rem 1.25rem', display: 'inline-block' }}>
+                <div className="flex items-center gap-2" style={{ color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: 600 }}>
+                  <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--accent-success)', display: 'inline-block', boxShadow: 'inset 1px 1px 2px rgba(0,0,0,0.2)' }}></span>
+                  Waiting for direct challenges...
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Duel History */}
+        <div>
+          <h3 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Trophy size={18} style={{ color: 'var(--accent-primary)' }} />
+            Match History
+          </h3>
 
         {historyLoading ? (
           <div className="clay-card" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontWeight: 600 }}>Loading history...</div>
@@ -247,6 +294,40 @@ const LiveDuels = ({ initialDuelData }) => {
             })}
           </div>
         )}
+      </div>
+      </div>
+
+      {/* Right Column: Global Active Members */}
+      <div>
+        <h3 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--accent-success)', display: 'inline-block', boxShadow: 'inset 1px 1px 2px rgba(0,0,0,0.2)' }}></span>
+          Global Active Members
+        </h3>
+        
+        <div className="clay-card" style={{ padding: '1rem', display: 'flex', flexWrap: 'wrap', gap: '0.75rem', maxHeight: '500px', overflowY: 'auto' }}>
+          {onlineUsers.length === 0 ? (
+            <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.75rem', padding: '1rem 0', width: '100%' }}>
+              No other members online.
+            </div>
+          ) : (
+            onlineUsers.map(u => (
+              <div 
+                key={u._id} 
+                title={`${u.username} (Rating: ${u.stats?.rating || 0})`}
+                style={{ position: 'relative', cursor: 'pointer', transition: 'transform 0.2s ease' }}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              >
+                <img 
+                  src={u.profile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`} 
+                  alt={u.username} 
+                  style={{ width: 40, height: 40, borderRadius: '50%', boxShadow: '4px 4px 8px rgba(0,0,0,0.1), -4px -4px 8px rgba(255,255,255,0.7)' }} 
+                />
+                <span style={{ position: 'absolute', bottom: -2, right: -2, width: 10, height: 10, borderRadius: '50%', background: 'var(--accent-success)', border: '2px solid var(--bg-primary)' }}></span>
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );

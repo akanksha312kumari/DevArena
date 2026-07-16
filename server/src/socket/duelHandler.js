@@ -7,6 +7,7 @@ const judgingService = require('../services/judgingService');
 const mockProblems = require('../data/mockProblems');
 
 const activeDuels = new Map(); // duelId -> duel state
+let matchmakingQueue = []; // [{ socketId, userId, user: { id, username, avatar, platforms } }]
 
 module.exports = (io, socket, connectedUsers) => {
   // --- Challenge Logic ---
@@ -23,6 +24,67 @@ module.exports = (io, socket, connectedUsers) => {
     });
   });
 
+  // --- Random Matchmaking Logic ---
+  const checkMatchmakingQueue = () => {
+    if (matchmakingQueue.length >= 2) {
+      const p1Data = matchmakingQueue.shift();
+      const p2Data = matchmakingQueue.shift();
+
+      const duelId = `duel_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      const randomProblemIndex = Math.floor(Math.random() * mockProblems.length);
+      const fullProblem = mockProblems[randomProblemIndex];
+      const timeLimit = 15;
+
+      activeDuels.set(duelId, {
+        id: duelId,
+        players: [
+          { ...p1Data.user, status: 'Ready', maxPassed: 0 },
+          { ...p2Data.user, status: 'Ready', maxPassed: 0 }
+        ],
+        problem: fullProblem,
+        timeLimit,
+        status: 'starting',
+        startTime: Date.now() + 3000,
+        endTime: Date.now() + 3000 + (timeLimit * 60 * 1000)
+      });
+
+      const duelState = activeDuels.get(duelId);
+
+      io.to(p1Data.socketId).emit('match_found', duelState);
+      io.to(p2Data.socketId).emit('match_found', duelState);
+
+      startDuelTimer(io, duelId);
+    }
+  };
+
+  socket.on('find_random_match', async () => {
+    const userId = connectedUsers.get(socket.id);
+    if (!userId) return;
+
+    // Check if user is already in queue
+    const existingIndex = matchmakingQueue.findIndex(p => p.userId === userId);
+    if (existingIndex !== -1) return; // Already in queue
+
+    try {
+      const userObj = await User.findById(userId).select('username profile stats platforms');
+      const user = { id: userId, username: userObj?.username, avatar: userObj?.profile?.avatar, platforms: userObj?.platforms };
+      
+      matchmakingQueue.push({ socketId: socket.id, userId, user });
+      checkMatchmakingQueue();
+    } catch (e) {
+      console.error('Error finding random match:', e);
+    }
+  });
+
+  socket.on('cancel_match_search', () => {
+    const userId = connectedUsers.get(socket.id);
+    matchmakingQueue = matchmakingQueue.filter(p => p.userId !== userId);
+  });
+
+  socket.on('disconnect', () => {
+    matchmakingQueue = matchmakingQueue.filter(p => p.socketId !== socket.id);
+  });
+
   socket.on('accept_challenge', async (data) => {
     const { senderId, challengeId, problem, timeLimit } = data;
     const acceptorId = connectedUsers.get(socket.id);
@@ -36,8 +98,12 @@ module.exports = (io, socket, connectedUsers) => {
     
       const duelId = `duel_${Date.now()}`;
       
-      const fullProblem = mockProblems.find(p => problem.url && p.url.includes(problem.url)) || mockProblems[0];
-
+      const searchStr = (problem.url || problem.problemId || '').toString().toLowerCase().trim();
+      const fullProblem = mockProblems.find(p => 
+        p.url.toLowerCase().includes(searchStr) || 
+        p.id.toLowerCase() === searchStr || 
+        p.questionId === searchStr
+      ) || mockProblems[0];
       activeDuels.set(duelId, {
         id: duelId,
         players: [p1, p2].map(p => ({ ...p, maxPassed: 0 })),
@@ -77,7 +143,12 @@ module.exports = (io, socket, connectedUsers) => {
       const sender = await User.findById(senderId).select('username profile stats platforms');
       const p1 = { id: senderId, username: sender?.username, avatar: sender?.profile?.avatar, platforms: sender?.platforms, status: 'Ready' };
 
-      const fullProblem = mockProblems.find(p => problem.problemId && p.url.includes(problem.problemId)) || mockProblems[0];
+      const searchStrGroup = (problem.problemId || problem.url || '').toString().toLowerCase().trim();
+      const fullProblem = mockProblems.find(p => 
+        p.url.toLowerCase().includes(searchStrGroup) || 
+        p.id.toLowerCase() === searchStrGroup || 
+        p.questionId === searchStrGroup
+      ) || mockProblems[0];
 
       const duelId = `group_duel_${Date.now()}`;
       activeDuels.set(duelId, {

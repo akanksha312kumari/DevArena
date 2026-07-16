@@ -1,6 +1,7 @@
 const mockProblems = [
   {
     id: "two-sum",
+    questionId: "1",
     title: "Two Sum",
     difficulty: "Easy",
     platform: "leetcode",
@@ -32,6 +33,7 @@ You can return the answer in any order.`,
   },
   {
     id: "reverse-string",
+    questionId: "344",
     title: "Reverse String",
     difficulty: "Easy",
     platform: "leetcode",
@@ -54,6 +56,56 @@ You must do this by modifying the input array in-place with O(1) extra memory.`,
     hiddenTests: [
       { input: "[ ['a'] ]", expected: "['a']" },
       { input: "[ ['a','b'] ]", expected: "['b','a']" }
+    ]
+  },
+  {
+    id: "palindrome-number",
+    questionId: "9",
+    title: "Palindrome Number",
+    difficulty: "Easy",
+    platform: "leetcode",
+    url: "https://leetcode.com/problems/palindrome-number/",
+    description: `Given an integer x, return true if x is a palindrome, and false otherwise.`,
+    examples: [
+      { input: "x = 121", output: "true" },
+      { input: "x = -121", output: "false" }
+    ],
+    constraints: [
+      "-2^31 <= x <= 2^31 - 1"
+    ],
+    functionSignature: "function isPalindrome(x) {\n  // your code here\n}",
+    sampleTests: [
+      { input: "[ 121 ]", expected: "true" },
+      { input: "[ -121 ]", expected: "false" }
+    ],
+    hiddenTests: [
+      { input: "[ 10 ]", expected: "false" },
+      { input: "[ 0 ]", expected: "true" }
+    ]
+  },
+  {
+    id: "valid-parentheses",
+    questionId: "20",
+    title: "Valid Parentheses",
+    difficulty: "Easy",
+    platform: "leetcode",
+    url: "https://leetcode.com/problems/valid-parentheses/",
+    description: `Given a string s containing just the characters '(', ')', '{', '}', '[' and ']', determine if the input string is valid.`,
+    examples: [
+      { input: 's = "()"', output: "true" },
+      { input: 's = "()[]{}"', output: "true" }
+    ],
+    constraints: [
+      "1 <= s.length <= 10^4"
+    ],
+    functionSignature: "function isValid(s) {\n  // your code here\n}",
+    sampleTests: [
+      { input: "[ '()' ]", expected: "true" },
+      { input: "[ '()[]{}' ]", expected: "true" }
+    ],
+    hiddenTests: [
+      { input: "[ '(]' ]", expected: "false" },
+      { input: "[ '{[]}' ]", expected: "true" }
     ]
   }
 ];
