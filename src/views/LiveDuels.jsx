@@ -145,7 +145,7 @@ const LiveDuels = ({ initialDuelData }) => {
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Challenge your friends to real-time coding matches.</p>
       </header>
 
-      <div className="card" style={{ textAlign: 'center', padding: '1.5rem', marginBottom: '1.5rem' }}>
+      <div className="clay-card" style={{ textAlign: 'center', padding: '2rem', marginBottom: '2rem' }}>
         <div style={{ display: 'inline-flex', padding: '0.75rem', background: 'rgba(217, 119, 6, 0.1)', borderRadius: '50%', marginBottom: '1rem', color: 'var(--accent-primary)' }}>
           <Swords size={32} />
         </div>
@@ -154,9 +154,9 @@ const LiveDuels = ({ initialDuelData }) => {
           Head over to the <strong>Friends</strong> tab to challenge someone directly, or wait in the lobby to accept incoming challenges!
         </p>
         
-        <div style={{ padding: '0.75rem 1.25rem', background: 'var(--bg-secondary)', borderRadius: '8px', display: 'inline-block' }}>
-          <div className="flex items-center gap-2" style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent-success)', display: 'inline-block' }}></span>
+        <div className="clay-recessed" style={{ padding: '0.75rem 1.25rem', display: 'inline-block' }}>
+          <div className="flex items-center gap-2" style={{ color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: 600 }}>
+            <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--accent-success)', display: 'inline-block', boxShadow: 'inset 1px 1px 2px rgba(0,0,0,0.2)' }}></span>
             Waiting for challenges...
           </div>
         </div>
@@ -170,9 +170,9 @@ const LiveDuels = ({ initialDuelData }) => {
         </h3>
 
         {historyLoading ? (
-          <div className="card" style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)' }}>Loading history...</div>
+          <div className="clay-card" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontWeight: 600 }}>Loading history...</div>
         ) : duelHistory.length === 0 ? (
-          <div className="card" style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)' }}>
+          <div className="clay-card" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontWeight: 600 }}>
             No duels played yet. Challenge a friend to get started!
           </div>
         ) : (
@@ -186,14 +186,12 @@ const LiveDuels = ({ initialDuelData }) => {
               const date = new Date(duel.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 
               return (
-                <div key={duel._id || i} className="card" style={{
-                  display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem 1rem',
-                  borderLeft: `4px solid ${isWin ? 'var(--accent-success)' : isDraw ? 'var(--accent-warning)' : 'var(--accent-danger)'}`
+                <div key={duel._id || i} className="clay-card" style={{
+                  display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem 1.5rem'
                 }}>
                   {/* Result badge */}
-                  <div style={{
-                    width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                    background: isWin ? 'rgba(34,197,94,0.12)' : isDraw ? 'rgba(217,119,6,0.12)' : 'rgba(239,68,68,0.12)',
+                  <div className="clay-recessed" style={{
+                    width: 48, height: 48, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                     color: isWin ? 'var(--accent-success)' : isDraw ? 'var(--accent-warning)' : 'var(--accent-danger)'
                   }}>
                     {isWin ? <Trophy size={18} /> : isDraw ? <Minus size={18} /> : <XCircle size={18} />}

@@ -127,7 +127,7 @@ const LiveDuelArena = ({ duel, socket, user, onLeave }) => {
   return (
     <div style={{ height: 'calc(100vh - 2rem)', display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '-1rem' }}>
       {/* Header */}
-      <header className="card flex items-center justify-between" style={{ padding: '0.75rem 1.5rem', marginBottom: 0 }}>
+      <header className="clay-card flex items-center justify-between" style={{ padding: '1.25rem 2rem', marginBottom: 0 }}>
         <div className="flex items-center">
           {renderHeaderCenter()}
         </div>
@@ -142,14 +142,14 @@ const LiveDuelArena = ({ duel, socket, user, onLeave }) => {
               </span>
             </div>
           </div>
-          <button className="btn btn-outline" onClick={onLeave}>Leave</button>
+          <button className="clay-btn btn-outline" onClick={onLeave}>Leave</button>
         </div>
       </header>
 
       {/* Main Split */}
       <div className="flex gap-4" style={{ flex: 1, minHeight: 0 }}>
         {/* Left Pane: Problem Description */}
-        <div className="card" style={{ flex: '0 0 35%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div className="clay-card" style={{ flex: '0 0 35%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <div style={{ padding: '0 0 1rem 0', borderBottom: '1px solid var(--card-border)', marginBottom: '1rem' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>{duel?.problem?.title || 'Problem'}</h2>
             <div className="flex items-center gap-3" style={{ fontSize: '0.75rem' }}>
@@ -194,12 +194,12 @@ const LiveDuelArena = ({ duel, socket, user, onLeave }) => {
 
         {/* Right Pane: Code Editor & Console */}
         <div className="flex flex-col gap-4" style={{ flex: 1, minWidth: 0 }}>
-          <div className="card" style={{ flex: 1, padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', border: '1px solid var(--card-border)' }}>
-            <div className="flex justify-between items-center" style={{ padding: '0.5rem 1rem', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--card-border)' }}>
+          <div className="clay-card" style={{ flex: 1, padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div className="flex justify-between items-center" style={{ padding: '1rem', background: 'var(--bg-secondary)', borderBottom: '2px solid var(--bg-primary)' }}>
               <div style={{ fontSize: '0.875rem', fontWeight: 600 }}>main.js</div>
               <button 
-                className="btn btn-primary" 
-                style={{ padding: '0.25rem 1rem', fontSize: '0.875rem' }} 
+                className="clay-btn btn-primary" 
+                style={{ padding: '0.5rem 1.5rem', fontSize: '0.875rem' }} 
                 onClick={handleSubmit}
                 disabled={isSubmitting || matchResult}
               >
@@ -223,11 +223,11 @@ const LiveDuelArena = ({ duel, socket, user, onLeave }) => {
           </div>
 
           {/* Console */}
-          <div className="card" style={{ height: '200px', display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden' }}>
-            <div style={{ padding: '0.5rem 1rem', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--card-border)', fontSize: '0.875rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Terminal size={14} /> Console
+          <div className="clay-card" style={{ height: '200px', display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden' }}>
+            <div style={{ padding: '1rem', background: 'var(--bg-secondary)', borderBottom: '2px solid var(--bg-primary)', fontSize: '1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Terminal size={16} /> Console
             </div>
-            <div style={{ flex: 1, padding: '1rem', overflowY: 'auto', background: '#1e1e1e', color: '#ccc', fontFamily: 'monospace', fontSize: '0.875rem' }}>
+            <div className="clay-recessed" style={{ flex: 1, padding: '1rem', overflowY: 'auto', background: '#1e1e1e', color: '#ccc', fontFamily: 'monospace', fontSize: '0.875rem', borderRadius: 0, borderBottomLeftRadius: '32px', borderBottomRightRadius: '32px' }}>
               {consoleOutput.length === 0 ? (
                 <span style={{ color: '#666' }}>No output yet. Run your code to see results.</span>
               ) : (
@@ -249,7 +249,7 @@ const LiveDuelArena = ({ duel, socket, user, onLeave }) => {
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
         }}>
-          <div className="card" style={{ width: '100%', maxWidth: '400px', textAlign: 'center' }}>
+          <div className="clay-card" style={{ width: '100%', maxWidth: '400px', textAlign: 'center', padding: '2rem' }}>
             {matchResult.winner === user._id ? (
               <>
                 <Trophy size={48} color="var(--accent-success)" style={{ margin: '0 auto 1rem' }} />
@@ -269,7 +269,7 @@ const LiveDuelArena = ({ duel, socket, user, onLeave }) => {
                 <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>Time ran out.</p>
               </>
             )}
-            <button className="btn btn-primary w-full" onClick={onLeave}>Return to Dashboard</button>
+            <button className="clay-btn btn-primary w-full" onClick={onLeave}>Return to Dashboard</button>
           </div>
         </div>
       )}

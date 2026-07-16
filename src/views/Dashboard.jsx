@@ -23,11 +23,11 @@ const Heatmap = ({ heatmapData = {} }) => {
   }
 
   const getColor = (count) => {
-    if (!count || count === 0) return 'var(--card-border)';
-    if (count === 1) return '#0e4429'; // level 1
-    if (count === 2) return '#006d32'; // level 2
-    if (count >= 3 && count <= 5) return '#26a641'; // level 3
-    return '#39d353'; // level 4
+    if (!count || count === 0) return 'var(--bg-secondary)'; // clay secondary
+    if (count === 1) return '#A7F3D0'; // light mint
+    if (count === 2) return '#6EE7B7'; 
+    if (count >= 3 && count <= 5) return '#34D399'; 
+    return '#10B981'; 
   };
 
   // Group columns by month to determine where to place the label
@@ -131,15 +131,15 @@ const Dashboard = () => {
   const recentSubmissions = user?.recentSubmissions || [];
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       
       {/* Compact Top Profile Bar */}
-      <div className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.5rem' }}>
+      <div className="clay-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.5rem 2rem' }}>
         <div className="flex items-center gap-4">
-          <img src={user?.profile?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=default"} alt="Profile" style={{ width: '64px', height: '64px', borderRadius: '8px' }} />
+          <img src={user?.profile?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=default"} alt="Profile" style={{ width: '64px', height: '64px', borderRadius: '50%' }} />
           <div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.25rem' }}>{user?.username}</h2>
-            <div className="flex gap-4" style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.25rem' }}>{user?.username}</h2>
+            <div className="flex gap-4" style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
               <span>Level {user?.level || 1}</span>
               <span>{user?.xp || 0} XP</span>
             </div>
@@ -148,42 +148,42 @@ const Dashboard = () => {
         
         <div className="flex gap-6">
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Global Rating</div>
-            <div className="flex items-center gap-1 justify-center" style={{ fontWeight: 600 }}>
-              <Trophy size={16} color="var(--accent-primary)" />
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Global Rating</div>
+            <div className="flex items-center gap-1 justify-center" style={{ fontWeight: 700, fontSize: '1.25rem' }}>
+              <Trophy size={20} color="var(--accent-primary)" />
               {stats.globalRating}
             </div>
           </div>
-          <div style={{ width: '1px', background: 'var(--card-border)' }} />
+          <div style={{ width: '2px', background: 'var(--bg-primary)' }} />
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Daily Streak</div>
-            <div className="flex items-center gap-1 justify-center" style={{ fontWeight: 600 }}>
-              <Flame size={16} color="var(--accent-streak)" />
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Daily Streak</div>
+            <div className="flex items-center gap-1 justify-center" style={{ fontWeight: 700, fontSize: '1.25rem' }}>
+              <Flame size={20} color="var(--accent-streak)" />
               {stats.dailyStreak}
             </div>
           </div>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '1rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '2rem' }}>
         
         {/* Problems Solved */}
-        <div className="card flex flex-col items-center gap-2">
-          <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-secondary)', alignSelf: 'flex-start', marginBottom: '0.5rem' }}>Problems Solved</h3>
+        <div className="clay-card flex flex-col items-center gap-2">
+          <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-secondary)', alignSelf: 'flex-start', marginBottom: '0.5rem' }}>Problems Solved</h3>
           
-          <div style={{ position: 'relative', width: '110px', height: '110px', flexShrink: 0 }}>
+          <div style={{ position: 'relative', width: '120px', height: '120px', flexShrink: 0 }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={chartData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={42}
-                  outerRadius={52}
+                  innerRadius={45}
+                  outerRadius={60}
                   paddingAngle={totalSolved > 0 ? 5 : 0}
                   dataKey="value"
                   stroke="none"
-                  cornerRadius={5}
+                  cornerRadius={10}
                 >
                   {chartData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
@@ -192,59 +192,59 @@ const Dashboard = () => {
               </PieChart>
             </ResponsiveContainer>
             <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>{totalSolved}</div>
-              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Solved</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)' }}>{totalSolved}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Solved</div>
             </div>
           </div>
 
           <div className="flex gap-2 w-full justify-between mt-2">
-            <div className="flex flex-col items-center" style={{ background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '6px', flex: 1, border: '1px solid var(--card-border)' }}>
-              <span style={{ fontSize: '0.65rem', color: 'var(--accent-success)', marginBottom: '0.25rem', fontWeight: 600 }}>Easy</span>
-              <span style={{ fontSize: '1rem', fontWeight: 700 }}>{stats.problemsSolved?.easy || 0}</span>
+            <div className="clay-recessed flex flex-col items-center" style={{ padding: '0.75rem', flex: 1 }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--accent-success)', marginBottom: '0.25rem', fontWeight: 700 }}>Easy</span>
+              <span style={{ fontSize: '1.125rem', fontWeight: 800 }}>{stats.problemsSolved?.easy || 0}</span>
             </div>
-            <div className="flex flex-col items-center" style={{ background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '6px', flex: 1, border: '1px solid var(--card-border)' }}>
-              <span style={{ fontSize: '0.65rem', color: 'var(--accent-streak)', marginBottom: '0.25rem', fontWeight: 600 }}>Med</span>
-              <span style={{ fontSize: '1rem', fontWeight: 700 }}>{stats.problemsSolved?.medium || 0}</span>
+            <div className="clay-recessed flex flex-col items-center" style={{ padding: '0.75rem', flex: 1 }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--accent-streak)', marginBottom: '0.25rem', fontWeight: 700 }}>Med</span>
+              <span style={{ fontSize: '1.125rem', fontWeight: 800 }}>{stats.problemsSolved?.medium || 0}</span>
             </div>
-            <div className="flex flex-col items-center" style={{ background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '6px', flex: 1, border: '1px solid var(--card-border)' }}>
-              <span style={{ fontSize: '0.65rem', color: 'var(--accent-danger)', marginBottom: '0.25rem', fontWeight: 600 }}>Hard</span>
-              <span style={{ fontSize: '1rem', fontWeight: 700 }}>{stats.problemsSolved?.hard || 0}</span>
+            <div className="clay-recessed flex flex-col items-center" style={{ padding: '0.75rem', flex: 1 }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--accent-danger)', marginBottom: '0.25rem', fontWeight: 700 }}>Hard</span>
+              <span style={{ fontSize: '1.125rem', fontWeight: 800 }}>{stats.problemsSolved?.hard || 0}</span>
             </div>
           </div>
         </div>
 
         {/* Duels Stats Card */}
-        <div className="card flex flex-col justify-between">
+        <div className="clay-card flex flex-col justify-between">
           <div>
-            <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '1rem' }}>Duel Statistics</h3>
+            <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '1rem' }}>Duel Statistics</h3>
             
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '1rem' }}>
-              <div style={{ background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '6px', textAlign: 'center', border: '1px solid var(--card-border)' }}>
-                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '0.125rem' }}>Total Duels</div>
-                <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>{user?.stats?.duels?.total || 0}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div className="clay-recessed" style={{ padding: '0.75rem', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.125rem', fontWeight: 600 }}>Total Duels</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)' }}>{user?.stats?.duels?.total || 0}</div>
               </div>
-              <div style={{ background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '6px', textAlign: 'center', border: '1px solid var(--card-border)' }}>
-                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '0.125rem' }}>Win Rate</div>
-                <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--accent-primary)' }}>
+              <div className="clay-recessed" style={{ padding: '0.75rem', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.125rem', fontWeight: 600 }}>Win Rate</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--accent-primary)' }}>
                   {user?.stats?.duels?.total ? Math.round(((user?.stats?.duels?.wins || 0) / user.stats.duels.total) * 100) : 0}%
                 </div>
               </div>
-              <div style={{ background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '6px', textAlign: 'center', border: '1px solid var(--card-border)' }}>
-                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '0.125rem' }}>Wins</div>
-                <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--accent-success)' }}>{user?.stats?.duels?.wins || 0}</div>
+              <div className="clay-recessed" style={{ padding: '0.75rem', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.125rem', fontWeight: 600 }}>Wins</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--accent-success)' }}>{user?.stats?.duels?.wins || 0}</div>
               </div>
-              <div style={{ background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '6px', textAlign: 'center', border: '1px solid var(--card-border)' }}>
-                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '0.125rem' }}>Losses</div>
-                <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--accent-danger)' }}>{user?.stats?.duels?.losses || 0}</div>
+              <div className="clay-recessed" style={{ padding: '0.75rem', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.125rem', fontWeight: 600 }}>Losses</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--accent-danger)' }}>{user?.stats?.duels?.losses || 0}</div>
               </div>
             </div>
             
-            <div className="flex justify-between items-center" style={{ background: 'rgba(56, 189, 248, 0.1)', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
+            <div className="clay-recessed flex justify-between items-center" style={{ padding: '0.75rem 1rem' }}>
               <div className="flex items-center gap-2">
-                <Trophy size={14} color="var(--accent-primary)" />
-                <span style={{ fontSize: '0.75rem', fontWeight: 500 }}>Arena Rank</span>
+                <Trophy size={16} color="var(--accent-primary)" />
+                <span style={{ fontSize: '0.875rem', fontWeight: 700 }}>Arena Rank</span>
               </div>
-              <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--accent-primary)' }}>
+              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--accent-primary)' }}>
                 {user?.stats?.arenaRank ? `#${user.stats.arenaRank}` : 'Unranked'}
               </div>
             </div>
@@ -252,29 +252,27 @@ const Dashboard = () => {
         </div>
 
         {/* POTD */}
-        <div className="card flex flex-col justify-between">
+        <div className="clay-card flex flex-col justify-between">
           <div>
-            <div className="flex justify-between items-center" style={{ marginBottom: '1rem' }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Problem of the Day</h3>
-              <div title="Past POTDs" style={{ cursor: 'pointer' }}>
-                <Calendar size={16} color="var(--accent-primary)" />
+            <div className="flex justify-between items-center" style={{ marginBottom: '1.5rem' }}>
+              <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Problem of the Day</h3>
+              <div title="Past POTDs" style={{ cursor: 'pointer', padding: '0.5rem', background: 'var(--bg-primary)', borderRadius: '50%' }} className="clay-recessed">
+                <Calendar size={18} color="var(--accent-primary)" />
               </div>
             </div>
             
             {potd ? (
               <>
-                <div style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '0.5rem' }}>{potd.title}</div>
-                <div className="flex items-center gap-2" style={{ fontSize: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '1rem', color: 'var(--text-primary)' }}>{potd.title}</div>
+                <div className="clay-recessed flex items-center gap-3" style={{ padding: '0.75rem', fontSize: '0.875rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
                   <span style={{ 
-                    color: potd.difficulty === 'Easy' ? 'var(--accent-success)' : potd.difficulty === 'Medium' ? 'var(--accent-streak)' : 'var(--accent-danger)', 
-                    fontWeight: 500 
+                    color: potd.difficulty === 'Easy' ? 'var(--accent-success)' : potd.difficulty === 'Medium' ? 'var(--accent-warning)' : 'var(--accent-danger)', 
+                    fontWeight: 700 
                   }}>
                     {potd.difficulty}
                   </span>
-                  <span style={{ color: 'var(--text-muted)' }}>{potd.platform}</span>
-                  {potd.tags && potd.tags.length > 0 && (
-                    <span style={{ color: 'var(--text-muted)' }}>• {potd.tags.slice(0,2).join(', ')}</span>
-                  )}
+                  <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>•</span>
+                  <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>{potd.platform}</span>
                 </div>
               </>
             ) : (
@@ -283,8 +281,8 @@ const Dashboard = () => {
           </div>
           
           <button 
-            className="btn btn-primary" 
-            style={{ width: '100%' }}
+            className="clay-btn btn-primary" 
+            style={{ width: '100%', fontSize: '1rem' }}
             onClick={() => potd?.url && window.open(potd.url, '_blank')}
             disabled={!potd}
           >
@@ -295,45 +293,47 @@ const Dashboard = () => {
       </div>
 
       {/* Heatmap (Full Width) */}
-      <div className="card">
+      <div className="clay-card">
         <div className="flex justify-between items-center flex-wrap gap-4" style={{ marginBottom: '1.5rem' }}>
-          <div style={{ fontSize: '1rem', color: 'var(--text-secondary)' }}>
-            <span style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+          <div style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+            <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)' }}>
               {Object.values(user?.heatmapData || {}).reduce((acc, count) => acc + count, 0)}
             </span> submissions in the past one year
           </div>
           
-          <div className="flex gap-4 items-center" style={{ fontSize: '0.875rem' }}>
-            <span style={{ color: 'var(--text-muted)' }}>Total active days: <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{Object.keys(user?.heatmapData || {}).length}</span></span>
-            <span style={{ color: 'var(--text-muted)' }}>Max streak: <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{stats.maxStreak}</span></span>
-            <select style={{ background: 'var(--bg-secondary)', border: '1px solid var(--card-border)', color: 'var(--text-primary)', padding: '4px 8px', borderRadius: '4px', outline: 'none' }}>
+          <div className="flex gap-4 items-center" style={{ fontSize: '0.875rem', fontWeight: 600 }}>
+            <span style={{ color: 'var(--text-muted)' }}>Total active days: <span style={{ color: 'var(--text-primary)' }}>{Object.keys(user?.heatmapData || {}).length}</span></span>
+            <span style={{ color: 'var(--text-muted)' }}>Max streak: <span style={{ color: 'var(--text-primary)' }}>{stats.maxStreak}</span></span>
+            <select className="clay-input" style={{ padding: '0.5rem 1rem', width: 'auto' }}>
                <option>Current</option>
             </select>
           </div>
         </div>
         
-        <Heatmap heatmapData={user?.heatmapData || {}} />
+        <div className="clay-recessed" style={{ padding: '1.5rem' }}>
+          <Heatmap heatmapData={user?.heatmapData || {}} />
+        </div>
       </div>
 
       {/* Recent Submissions */}
-      <div className="card">
-        <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--text-secondary)' }}>Recent Submissions</h3>
+      <div className="clay-card">
+        <h3 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>Recent Submissions</h3>
         <div className="flex flex-col gap-3">
           {recentSubmissions.length === 0 ? (
-            <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>No recent submissions. Sync your platforms to view activity!</div>
+            <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: 600 }}>No recent submissions. Sync your platforms to view activity!</div>
           ) : (
             recentSubmissions.map((sub, i) => (
-              <div key={i} className="flex items-center justify-between" style={{ paddingBottom: '0.75rem', borderBottom: i !== recentSubmissions.length - 1 ? '1px solid var(--card-border)' : 'none' }}>
-                <div className="flex items-center gap-3">
-                  <CheckCircle size={16} color="var(--accent-success)" />
-                  <div style={{ fontSize: '0.875rem', fontWeight: 500, cursor: 'pointer' }} onClick={() => sub.url && window.open(sub.url, '_blank')}>
+              <div key={i} className="clay-recessed flex items-center justify-between" style={{ padding: '1rem 1.5rem' }}>
+                <div className="flex items-center gap-4">
+                  <CheckCircle size={20} color="var(--accent-success)" />
+                  <div style={{ fontSize: '1rem', fontWeight: 700, cursor: 'pointer', color: 'var(--text-primary)' }} onClick={() => sub.url && window.open(sub.url, '_blank')}>
                     {sub.title}
                   </div>
-                  <span style={{ fontSize: '0.75rem', padding: '2px 6px', background: 'var(--bg-secondary)', borderRadius: '4px', color: 'var(--text-muted)', textTransform: 'capitalize' }}>
+                  <span className="badge" style={{ background: 'var(--card-bg)', color: 'var(--text-secondary)', textTransform: 'capitalize' }}>
                     {sub.platform}
                   </span>
                 </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 600 }}>
                   {new Date(sub.timestamp).toLocaleDateString()}
                 </div>
               </div>
@@ -344,20 +344,22 @@ const Dashboard = () => {
 
       {/* Platform Breakdowns */}
       {user?.platformStats && Object.keys(user.platformStats).length > 0 && (
-        <div className="card">
-          <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--text-secondary)' }}>Platform Breakdowns</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+        <div className="clay-card">
+          <h3 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>Platform Breakdowns</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}>
             {Object.entries(user.platformStats).map(([platform, pStats]) => {
               if (!pStats || (pStats.problemsSolved?.total === 0 && pStats.rating === 0)) return null;
               return (
-                <div key={platform} style={{ padding: '0.75rem', borderRadius: '6px', background: 'var(--bg-secondary)', border: '1px solid var(--card-border)' }}>
-                  <div className="flex items-center gap-2" style={{ fontWeight: 600, fontSize: '0.875rem', textTransform: 'capitalize', marginBottom: '0.5rem' }}>
-                    <Code size={14} color="var(--accent-primary)" />
+                <div key={platform} className="clay-recessed" style={{ padding: '1.25rem' }}>
+                  <div className="flex items-center gap-3" style={{ fontWeight: 800, fontSize: '1rem', textTransform: 'capitalize', marginBottom: '1rem', color: 'var(--text-primary)' }}>
+                    <div style={{ padding: '0.5rem', background: 'var(--card-bg)', borderRadius: '50%', boxShadow: '2px 2px 5px var(--clay-outer-dark)' }}>
+                      <Code size={16} color="var(--accent-primary)" />
+                    </div>
                     {platform}
                   </div>
-                  <div className="flex justify-between" style={{ fontSize: '0.75rem' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>Rating: <span style={{ color: 'var(--text-primary)' }}>{pStats.rating || 'N/A'}</span></span>
-                    <span style={{ color: 'var(--text-muted)' }}>Solved: <span style={{ color: 'var(--text-primary)' }}>{pStats.problemsSolved?.total || 0}</span></span>
+                  <div className="flex justify-between" style={{ fontSize: '0.875rem', fontWeight: 600 }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Rating: <span style={{ color: 'var(--accent-primary)' }}>{pStats.rating || 'N/A'}</span></span>
+                    <span style={{ color: 'var(--text-muted)' }}>Solved: <span style={{ color: 'var(--accent-success)' }}>{pStats.problemsSolved?.total || 0}</span></span>
                   </div>
                 </div>
               );

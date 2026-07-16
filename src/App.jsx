@@ -14,7 +14,7 @@ import Auth from './views/Auth';
 
 const App = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(() => localStorage.getItem('theme') === 'dark');
   const [activeDuelData, setActiveDuelData] = useState(null);
   const { user, loading } = useAuth();
   const socket = useSocket();
@@ -44,6 +44,7 @@ const App = () => {
   }, [socket]);
 
   useEffect(() => {
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
     if (isDark) {
       document.body.classList.add('dark');
     } else {
@@ -51,12 +52,14 @@ const App = () => {
     }
   }, [isDark]);
 
+
+
   if (loading) return <div>Loading...</div>;
 
   if (!user) return <Auth />;
 
   return (
-    <div className="app-container">
+    <div className={`app-container ${isDark ? 'dark' : ''}`}>
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
       
       <main className="main-content">

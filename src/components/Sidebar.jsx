@@ -30,7 +30,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
               key={tab.id}
               className={`nav-item w-full ${activeTab === tab.id ? 'active' : ''}`}
               onClick={() => setActiveTab(tab.id)}
-              style={{ textAlign: 'left', border: 'none', background: activeTab === tab.id ? 'rgba(217, 119, 6, 0.1)' : 'transparent' }}
+              style={{ textAlign: 'left' }}
             >
               <Icon size={20} />
               <span>{tab.label}</span>
@@ -43,19 +43,19 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
         <button
           className={`nav-item w-full ${activeTab === 'settings' ? 'active' : ''}`}
           onClick={() => setActiveTab('settings')}
-          style={{ textAlign: 'left', border: 'none', background: activeTab === 'settings' ? 'rgba(217, 119, 6, 0.1)' : 'transparent', marginBottom: 0 }}
+          style={{ textAlign: 'left', marginBottom: 0 }}
         >
           <Settings size={20} />
           <span>Settings</span>
         </button>
 
         {user && (
-          <div className="card" style={{ padding: '1rem', background: 'var(--bg-primary)' }}>
-            <div className="flex items-center gap-2" style={{ marginBottom: '0.5rem' }}>
+          <div className="clay-recessed" style={{ padding: '1.25rem' }}>
+            <div className="flex items-center gap-3" style={{ marginBottom: '0.5rem' }}>
               <img src={user.profile?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=default"} alt="User Avatar" style={{ width: 32, height: 32, borderRadius: '50%' }} />
               <div>
                 <div style={{ fontSize: '0.875rem', fontWeight: 600 }}>{user.username}</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Level 1</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Level {user.level || 1}</div>
               </div>
             </div>
           </div>

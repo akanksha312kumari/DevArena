@@ -204,16 +204,16 @@ const Friends = () => {
 
       {message && <div style={{ padding: '1rem', background: 'var(--accent-primary)', color: 'white', borderRadius: '8px', marginBottom: '1rem' }}>{message}</div>}
 
-      <div className="card" style={{ marginBottom: '2rem' }}>
+      <div className="clay-card" style={{ marginBottom: '2rem' }}>
         <form onSubmit={handleSearch} className="flex gap-2">
           <input 
             type="text" 
+            className="clay-input"
             placeholder="Search users..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--card-border)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }}
           />
-          <button type="submit" className="btn btn-primary"><Search size={20} /> Search</button>
+          <button type="submit" className="clay-btn btn-primary"><Search size={20} /> Search</button>
         </form>
 
         {searchResults.length > 0 && (
@@ -221,11 +221,11 @@ const Friends = () => {
             <h4 style={{ fontWeight: 600, marginBottom: '1rem' }}>Search Results</h4>
             <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))' }}>
               {searchResults.map(u => (
-                <div key={u._id} className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '1rem' }}>
+                <div key={u._id} className="clay-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '1rem' }}>
                   <img src={u.profile?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=default"} alt="Avatar" style={{ width: 48, height: 48, borderRadius: '50%', marginBottom: '0.75rem', objectFit: 'cover' }} />
                   <h4 style={{ fontWeight: 600, fontSize: '0.95rem' }}>{u.username}</h4>
                   <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>Rating: {u.stats?.globalRating || 0}</p>
-                  <button className="btn btn-outline" style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }} onClick={() => sendRequest(u._id)}><UserPlus size={14} /> Add Friend</button>
+                  <button className="clay-btn btn-outline" style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }} onClick={() => sendRequest(u._id)}><UserPlus size={14} /> Add Friend</button>
                 </div>
               ))}
             </div>
@@ -246,8 +246,8 @@ const Friends = () => {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button className="btn btn-outline" style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem' }} onClick={() => handleRejectRequest(r._id)}>Reject</button>
-                  <button className="btn btn-primary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem' }} onClick={() => handleAcceptRequest(r._id)}>Accept</button>
+                  <button className="clay-btn btn-outline" style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem' }} onClick={() => handleRejectRequest(r._id)}>Reject</button>
+                  <button className="clay-btn btn-primary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem' }} onClick={() => handleAcceptRequest(r._id)}>Accept</button>
                 </div>
               </div>
             ))}
@@ -271,7 +271,7 @@ const Friends = () => {
                   </div>
                 </div>
               </div>
-              <button className="btn btn-outline flex items-center justify-center gap-2" style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }} onClick={() => openChallengeModal(f)}>
+              <button className="clay-btn btn-outline flex items-center justify-center gap-2" style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }} onClick={() => openChallengeModal(f)}>
                 <Swords size={14} /> Challenge to Duel
               </button>
             </div>
@@ -285,7 +285,7 @@ const Friends = () => {
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
         }}>
-          <div className="card" style={{ width: '100%', maxWidth: '400px' }}>
+          <div className="clay-card" style={{ width: '100%', maxWidth: '400px' }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1rem' }}>Challenge {challengeTarget.username}</h3>
             <form onSubmit={handleChallengeSubmit} className="flex flex-col gap-4">
               <div>
@@ -293,7 +293,7 @@ const Friends = () => {
                 <select 
                   value={challengeData.platform}
                   onChange={e => setChallengeData({...challengeData, platform: e.target.value})}
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--card-border)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                  className="clay-input"
                 >
                   <option value="LeetCode">LeetCode</option>
                   <option value="Codeforces">Codeforces</option>
@@ -307,10 +307,10 @@ const Friends = () => {
                 <input 
                   type="text" 
                   required
+                  className="clay-input"
                   placeholder="e.g. https://leetcode.com/problems/two-sum/"
                   value={challengeData.problemId}
                   onChange={e => setChallengeData({...challengeData, problemId: e.target.value})}
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--card-border)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
                 />
               </div>
               <div>
@@ -318,7 +318,7 @@ const Friends = () => {
                 <select 
                   value={challengeData.timeLimit}
                   onChange={e => setChallengeData({...challengeData, timeLimit: e.target.value})}
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--card-border)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                  className="clay-input"
                 >
                   <option value="15">15 Minutes</option>
                   <option value="30">30 Minutes</option>
@@ -327,8 +327,8 @@ const Friends = () => {
                 </select>
               </div>
               <div className="flex gap-2 justify-end mt-2">
-                <button type="button" className="btn btn-outline" onClick={() => setShowChallengeModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary flex items-center gap-2"><Swords size={16} /> Send Challenge</button>
+                <button type="button" className="clay-btn btn-outline" onClick={() => setShowChallengeModal(false)}>Cancel</button>
+                <button type="submit" className="clay-btn btn-primary flex items-center gap-2"><Swords size={16} /> Send Challenge</button>
               </div>
             </form>
           </div>
@@ -353,8 +353,8 @@ const Friends = () => {
               Time Limit: <strong>{incomingChallenge.timeLimit} Minutes</strong>
             </div>
             <div className="flex gap-4 justify-center">
-              <button className="btn btn-outline" onClick={rejectIncomingChallenge} style={{ flex: 1, borderColor: 'var(--accent-danger)', color: 'var(--accent-danger)' }}>Decline</button>
-              <button className="btn btn-primary" onClick={acceptIncomingChallenge} style={{ flex: 1 }}>Accept Duel</button>
+              <button className="clay-btn btn-outline" onClick={rejectIncomingChallenge} style={{ flex: 1, borderColor: 'var(--accent-danger)', color: 'var(--accent-danger)' }}>Decline</button>
+              <button className="clay-btn btn-primary" onClick={acceptIncomingChallenge} style={{ flex: 1 }}>Accept Duel</button>
             </div>
           </div>
         </div>

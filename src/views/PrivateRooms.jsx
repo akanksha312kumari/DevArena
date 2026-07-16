@@ -244,7 +244,7 @@ const PrivateRooms = () => {
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
         <header className="flex items-center justify-between gap-4" style={{ marginBottom: '1.5rem' }}>
           <div className="flex items-center gap-4">
-            <button className="btn btn-outline" onClick={() => setSelectedRoom(null)}>Back</button>
+            <button className="clay-btn btn-outline" onClick={() => setSelectedRoom(null)}>Back</button>
             <div>
               <h2 style={{ fontSize: '1.5rem', fontWeight: 700 }}>{selectedRoom.name}</h2>
               <div style={{ color: 'var(--text-muted)' }}>
@@ -254,13 +254,13 @@ const PrivateRooms = () => {
             </div>
           </div>
           {onlineMembers.size > 1 && (
-            <button className="btn btn-primary" onClick={() => setShowChallengeModal(true)}>
+            <button className="clay-btn btn-primary" onClick={() => setShowChallengeModal(true)}>
               Challenge Group
             </button>
           )}
         </header>
 
-        <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', maxHeight: '70vh' }}>
+        <div className="clay-card" style={{ flex: 1, display: 'flex', flexDirection: 'column', maxHeight: '70vh' }}>
           <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem', paddingBottom: '1rem' }}>
             {messages.length === 0 ? (
               <div style={{ color: 'var(--text-muted)', textAlign: 'center', marginTop: '2rem' }}>No messages yet. Say hi!</div>
@@ -297,19 +297,19 @@ const PrivateRooms = () => {
           <form onSubmit={handleSendMessage} className="flex gap-2 mt-4" style={{ borderTop: '1px solid var(--card-border)', paddingTop: '1rem' }}>
             <input 
               type="text" 
+              className="clay-input"
               placeholder={`Message #${selectedRoom.name.replace(/\s+/g, '-').toLowerCase()}`}
               value={newMessage}
               onChange={handleTyping}
-              style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--card-border)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} 
             />
-            <button type="submit" className="btn btn-primary"><Send size={20} /></button>
+            <button type="submit" className="clay-btn btn-primary"><Send size={20} /></button>
           </form>
         </div>
 
         {/* Group Challenge Modal */}
         {showChallengeModal && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-            <div className="card" style={{ width: '100%', maxWidth: '400px' }}>
+            <div className="clay-card" style={{ width: '100%', maxWidth: '400px' }}>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1rem' }}>Challenge {selectedRoom.name}</h3>
               <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
                 Broadcast a challenge to all {onlineMembers.size} online members. They will have 15 seconds to accept.
@@ -320,7 +320,7 @@ const PrivateRooms = () => {
                   <select 
                     value={challengeData.platform}
                     onChange={e => setChallengeData({...challengeData, platform: e.target.value})}
-                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--card-border)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                    className="clay-input"
                   >
                     <option value="LeetCode">LeetCode</option>
                     <option value="Codeforces">Codeforces</option>
@@ -330,10 +330,10 @@ const PrivateRooms = () => {
                   <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Problem URL or Name</label>
                   <input 
                     type="text" required
+                    className="clay-input"
                     placeholder="e.g. https://leetcode.com/problems/two-sum/"
                     value={challengeData.problemId}
                     onChange={e => setChallengeData({...challengeData, problemId: e.target.value})}
-                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--card-border)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
                   />
                 </div>
                 <div>
@@ -341,15 +341,15 @@ const PrivateRooms = () => {
                   <select 
                     value={challengeData.timeLimit}
                     onChange={e => setChallengeData({...challengeData, timeLimit: e.target.value})}
-                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--card-border)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                    className="clay-input"
                   >
                     <option value="15">15 Minutes</option>
                     <option value="30">30 Minutes</option>
                   </select>
                 </div>
                 <div className="flex gap-2 justify-end mt-2">
-                  <button type="button" className="btn btn-outline" onClick={() => setShowChallengeModal(false)}>Cancel</button>
-                  <button type="submit" className="btn btn-primary">Send Challenge</button>
+                  <button type="button" className="clay-btn btn-outline" onClick={() => setShowChallengeModal(false)}>Cancel</button>
+                  <button type="submit" className="clay-btn btn-primary">Send Challenge</button>
                 </div>
               </form>
             </div>
@@ -371,8 +371,8 @@ const PrivateRooms = () => {
                 Time Limit: <strong>{incomingGroupChallenge.timeLimit} Minutes</strong>
               </div>
               <div className="flex gap-4 justify-center">
-                <button className="btn btn-outline" onClick={() => setIncomingGroupChallenge(null)} style={{ flex: 1, borderColor: 'var(--accent-danger)', color: 'var(--accent-danger)' }}>Decline</button>
-                <button className="btn btn-primary" onClick={handleAcceptGroupChallenge} style={{ flex: 1 }}>Accept Duel</button>
+                <button className="clay-btn btn-outline" onClick={() => setIncomingGroupChallenge(null)} style={{ flex: 1, borderColor: 'var(--accent-danger)', color: 'var(--accent-danger)' }}>Decline</button>
+                <button className="clay-btn btn-primary" onClick={handleAcceptGroupChallenge} style={{ flex: 1 }}>Accept Duel</button>
               </div>
             </div>
           </div>
@@ -390,28 +390,28 @@ const PrivateRooms = () => {
           <p style={{ color: 'var(--text-secondary)' }}>Collaborate and chat in real-time.</p>
         </div>
         <div className="flex gap-2">
-          <button className="btn btn-outline" onClick={() => setIsJoining(true)}>Join Room</button>
-          <button className="btn btn-primary" onClick={() => setIsCreating(true)}><Plus size={20} /> Create Room</button>
+          <button className="clay-btn btn-outline" onClick={() => setIsJoining(true)}>Join Room</button>
+          <button className="clay-btn btn-primary" onClick={() => setIsCreating(true)}><Plus size={20} /> Create Room</button>
         </div>
       </header>
 
       {isJoining && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="card" style={{ width: '400px' }}>
+          <div className="clay-card" style={{ width: '400px' }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem' }}>Join Private Room</h3>
             <form onSubmit={handleJoinRoom} className="flex flex-col gap-4">
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem' }}>Invite Code</label>
                 <input 
                   type="text" required
+                  className="clay-input"
                   value={inviteCode} onChange={e => setInviteCode(e.target.value)}
                   placeholder="e.g. 5A3B9C"
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--card-border)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }} 
                 />
               </div>
               <div className="flex gap-2 justify-end mt-2">
-                <button type="button" className="btn btn-outline" onClick={() => setIsJoining(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Join</button>
+                <button type="button" className="clay-btn btn-outline" onClick={() => setIsJoining(false)}>Cancel</button>
+                <button type="submit" className="clay-btn btn-primary">Join</button>
               </div>
             </form>
           </div>
@@ -420,28 +420,28 @@ const PrivateRooms = () => {
 
       {isCreating && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="card" style={{ width: '400px' }}>
+          <div className="clay-card" style={{ width: '400px' }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem' }}>Create Private Room</h3>
             <form onSubmit={handleCreateRoom} className="flex flex-col gap-4">
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem' }}>Room Name</label>
                 <input 
                   type="text" required
+                  className="clay-input"
                   value={newRoomData.name} onChange={e => setNewRoomData({...newRoomData, name: e.target.value})}
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--card-border)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }} 
                 />
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem' }}>Description</label>
                 <input 
                   type="text" 
+                  className="clay-input"
                   value={newRoomData.description} onChange={e => setNewRoomData({...newRoomData, description: e.target.value})}
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--card-border)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }} 
                 />
               </div>
               <div className="flex gap-2 justify-end mt-2">
-                <button type="button" className="btn btn-outline" onClick={() => setIsCreating(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Create</button>
+                <button type="button" className="clay-btn btn-outline" onClick={() => setIsCreating(false)}>Cancel</button>
+                <button type="submit" className="clay-btn btn-primary">Create</button>
               </div>
             </form>
           </div>

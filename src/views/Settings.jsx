@@ -19,6 +19,48 @@ const Settings = ({ isDark, setIsDark, setActiveTab }) => {
   const [message, setMessage] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
 
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        setMessage('Please select an image file.');
+        setTimeout(() => setMessage(''), 3000);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 200;
+          const MAX_HEIGHT = 200;
+          let width = img.width;
+          let height = img.height;
+          
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height = Math.round(height * (MAX_WIDTH / width));
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width = Math.round(width * (MAX_HEIGHT / height));
+              height = MAX_HEIGHT;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          setFormData(prev => ({ ...prev, avatar: dataUrl }));
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleLogout = () => {
     logout();
     setShowLogoutConfirm(false);
@@ -188,6 +230,12 @@ const Settings = ({ isDark, setIsDark, setActiveTab }) => {
           
           <div className="flex items-center gap-4" style={{ marginBottom: '1.5rem' }}>
             <img src={formData.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=default"} alt="User Avatar" style={{ width: 80, height: 80, borderRadius: '50%', border: '2px solid var(--accent-primary)', objectFit: 'cover' }} />
+            <div>
+              <label htmlFor="avatar-upload" className="clay-btn btn-outline" style={{ cursor: 'pointer', padding: '0.5rem 1rem', fontSize: '0.875rem' }}>
+                Upload Image
+              </label>
+              <input id="avatar-upload" type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageUpload} />
+            </div>
           </div>
 
           <div style={{ display: 'grid', gap: '1rem', marginBottom: '2rem' }}>
