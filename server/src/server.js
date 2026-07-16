@@ -12,6 +12,7 @@ const roomRoutes = require('./routes/room.routes');
 const leaderboardRoutes = require('./routes/leaderboard.routes');
 const aiRoutes = require('./routes/ai.routes');
 const problemRoutes = require('./routes/problem.routes');
+const duelRoutes = require('./routes/duel.routes');
 
 // Connect to database
 // Note: We only connect if MONGO_URI is set, to avoid crashing if it's not set up yet
@@ -39,6 +40,7 @@ app.use('/api/rooms', roomRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/problems', problemRoutes);
+app.use('/api/duels', duelRoutes);
 
 const http = require('http');
 const initSocket = require('./socket');

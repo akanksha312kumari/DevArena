@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from './context/AuthContext';
+import { useSocket } from './context/SocketContext';
 import Sidebar from './components/Sidebar';
 import Dashboard from './views/Dashboard';
 import LiveDuels from './views/LiveDuels';
@@ -14,7 +15,31 @@ import Auth from './views/Auth';
 const App = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isDark, setIsDark] = useState(false);
+  const [activeDuelData, setActiveDuelData] = useState(null);
   const { user, loading } = useAuth();
+  const socket = useSocket();
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const onChallengeAccepted = (data) => {
+      setActiveDuelData(data);
+      setActiveTab('duels');
+    };
+
+    const onDuelFinished = () => {
+      // Clear global duel state so returning to the tab doesn't re-trigger a stale duel
+      setActiveDuelData(null);
+    };
+
+    socket.on('challenge_accepted', onChallengeAccepted);
+    socket.on('duel_finished', onDuelFinished);
+    
+    return () => {
+      socket.off('challenge_accepted', onChallengeAccepted);
+      socket.off('duel_finished', onDuelFinished);
+    };
+  }, [socket]);
 
   useEffect(() => {
     if (isDark) {
@@ -42,7 +67,7 @@ const App = () => {
 
         <div className="content-area">
           {activeTab === 'dashboard' && <Dashboard />}
-          {activeTab === 'duels' && <LiveDuels />}
+          {activeTab === 'duels' && <LiveDuels initialDuelData={activeDuelData} />}
           {activeTab === 'friends' && <Friends />}
           {activeTab === 'rooms' && <PrivateRooms />}
           {activeTab === 'coach' && <AICoach />}

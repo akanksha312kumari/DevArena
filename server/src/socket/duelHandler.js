@@ -1,5 +1,6 @@
 const axios = require('axios');
 const User = require('../models/User');
+const Duel = require('../models/Duel');
 const gamificationService = require('../services/gamificationService');
 
 const activeDuels = new Map(); // duelId -> duel state
@@ -129,6 +130,17 @@ const handleDuelWin = (io, duel, winnerId) => {
   duel.status = 'finished';
   duel.winner = winnerId;
   
+  // Persist to MongoDB
+  Duel.create({
+    players: duel.players.map(p => p.id),
+    winner: winnerId,
+    problem: duel.problem,
+    timeLimit: duel.timeLimit,
+    status: 'finished',
+    startTime: new Date(duel.startTime),
+    endTime: new Date()
+  }).catch(err => console.error('Error saving duel to DB:', err));
+  
   User.findById(winnerId).then(user => {
     if (user) {
       gamificationService.awardXP(user, 100, 'Won a duel!', 'duel_win');
@@ -172,12 +184,22 @@ function startDuelTimer(io, duelId) {
         const remainingTime = activeDuel.endTime - Date.now();
         setTimeout(() => {
           const d = activeDuels.get(duelId);
-          if (d && d.status === 'active') {
-            d.status = 'finished';
-            d.winner = null; // Draw
-            io.to(duelId).emit('duel_finished', { winner: null, reason: 'time_up' });
-            activeDuels.delete(duelId);
-          }
+        if (d && d.status === 'active') {
+          d.status = 'finished';
+          d.winner = null;
+          // Persist draw to MongoDB
+          Duel.create({
+            players: d.players.map(p => p.id),
+            winner: null,
+            problem: d.problem,
+            timeLimit: d.timeLimit,
+            status: 'finished',
+            startTime: new Date(d.startTime),
+            endTime: new Date()
+          }).catch(err => console.error('Error saving draw duel to DB:', err));
+          io.to(duelId).emit('duel_finished', { winner: null, reason: 'time_up' });
+          activeDuels.delete(duelId);
+        }
         }, remainingTime);
       }
     }
