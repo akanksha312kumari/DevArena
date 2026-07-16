@@ -40,13 +40,49 @@ class LeetCodeAdapter {
         console.log(`Failed to fetch LeetCode contest for ${handle}:`, err.message);
       }
 
+      // 4. Fetch Calendar (Heatmap)
+      let heatmapData = {};
+      try {
+        const calRes = await axios.get(`https://alfa-leetcode-api.onrender.com/${handle}/calendar`);
+        if (calRes.data && calRes.data.submissionCalendar) {
+          const calendarJson = typeof calRes.data.submissionCalendar === 'string' 
+             ? JSON.parse(calRes.data.submissionCalendar) 
+             : calRes.data.submissionCalendar;
+          for (const [timestamp, count] of Object.entries(calendarJson)) {
+            const dateStr = new Date(parseInt(timestamp) * 1000).toISOString().split('T')[0];
+            heatmapData[dateStr] = (heatmapData[dateStr] || 0) + count;
+          }
+        }
+      } catch (err) {
+        console.log(`Failed to fetch LeetCode calendar for ${handle}:`, err.message);
+      }
+
+      // 5. Fetch Recent Submissions
+      let recentSubmissions = [];
+      try {
+        const acRes = await axios.get(`https://alfa-leetcode-api.onrender.com/${handle}/acSubmission`);
+        if (acRes.data && acRes.data.submission) {
+          recentSubmissions = acRes.data.submission.slice(0, 15).map(sub => ({
+            platform: 'leetcode',
+            title: sub.title,
+            difficulty: 'Unknown',
+            url: `https://leetcode.com/problems/${sub.titleSlug}/`,
+            timestamp: new Date(parseInt(sub.timestamp) * 1000)
+          }));
+        }
+      } catch (err) {
+        console.log(`Failed to fetch LeetCode recent submissions for ${handle}:`, err.message);
+      }
+
       return {
         rating,
         problemsSolved: { easy, medium, hard, total },
         contests,
         streak: 0, // Leetcode API doesn't provide streak directly without auth
         maxStreak: 0,
-        ranking: ranking.toString()
+        ranking: ranking.toString(),
+        heatmapData,
+        recentSubmissions
       };
     } catch (error) {
       console.error('LeetCode API Error:', error.message);

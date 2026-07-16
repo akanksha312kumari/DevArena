@@ -14,7 +14,7 @@ import Auth from './views/Auth';
 
 const App = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [isDark, setIsDark] = useState(false);
+  const [isDark, setIsDark] = useState(true);
   const [activeDuelData, setActiveDuelData] = useState(null);
   const { user, loading } = useAuth();
   const socket = useSocket();
@@ -58,12 +58,6 @@ const App = () => {
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
       
       <main className="main-content">
-        <header style={{ display: 'flex', justifyContent: 'flex-end', padding: '1rem', borderBottom: '1px solid var(--card-border)' }}>
-          <div className="flex items-center gap-4">
-            <span>{user.username}</span>
-            <img src={user.profile?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=default"} alt="Profile" style={{ width: '40px', height: '40px', borderRadius: '50%' }} />
-          </div>
-        </header>
 
         <div className="content-area">
           {activeTab === 'dashboard' && <Dashboard />}

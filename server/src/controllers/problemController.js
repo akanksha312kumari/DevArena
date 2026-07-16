@@ -1,4 +1,5 @@
 const Problem = require('../models/Problem');
+const axios = require('axios');
 
 const getProblems = async (req, res) => {
   try {
@@ -23,10 +24,31 @@ const getPOTD = async (req, res) => {
   try {
     let potd = await Problem.findOne({ isPOTD: true }).sort({ potdDate: -1 });
     
-    // If no POTD exists at all, make a random one POTD for demo purposes
-    if (!potd) {
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    // If no POTD or POTD is from previous days, try to fetch from LeetCode
+    if (!potd || !potd.potdDate || potd.potdDate < today) {
+       try {
+         const response = await axios.get('https://alfa-leetcode-api.onrender.com/daily');
+         if (response.data && response.data.questionLink) {
+           potd = {
+             title: response.data.questionTitle,
+             platform: 'leetcode',
+             difficulty: response.data.difficulty || 'Medium',
+             url: response.data.questionLink.startsWith('http') ? response.data.questionLink : `https://leetcode.com${response.data.questionLink}`,
+             tags: response.data.topicTags ? response.data.topicTags.map(t => t.name) : []
+           };
+         }
+       } catch (err) {
+         console.log("Failed to fetch LeetCode POTD:", err.message);
+       }
+    }
+    
+    // Fallback if API fails and DB has nothing
+    if (!potd || !potd.title) {
       potd = await Problem.findOne();
-      if (potd) {
+      if (potd && !potd.isPOTD) {
         potd.isPOTD = true;
         potd.potdDate = new Date();
         await potd.save();

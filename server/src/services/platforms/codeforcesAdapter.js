@@ -28,8 +28,30 @@ class CodeforcesAdapter {
       let easy = 0;
       let medium = 0;
       let hard = 0;
+      
+      const heatmapData = {};
+      const recentSubmissions = [];
+      let recentCount = 0;
 
       submissions.forEach(sub => {
+        const timestampMs = sub.creationTimeSeconds * 1000;
+        const dateStr = new Date(timestampMs).toISOString().split('T')[0];
+        
+        if (sub.verdict === 'OK') {
+          heatmapData[dateStr] = (heatmapData[dateStr] || 0) + 1;
+        }
+
+        if (recentCount < 15) {
+          recentSubmissions.push({
+            platform: 'codeforces',
+            title: `${sub.problem.contestId}${sub.problem.index} - ${sub.problem.name}`,
+            difficulty: sub.problem.rating ? sub.problem.rating.toString() : 'Unknown',
+            url: `https://codeforces.com/contest/${sub.problem.contestId}/problem/${sub.problem.index}`,
+            timestamp: new Date(timestampMs)
+          });
+          recentCount++;
+        }
+
         if (sub.verdict === 'OK') {
           const problemKey = `${sub.problem.contestId}-${sub.problem.index}`;
           if (!solvedProblems.has(problemKey)) {
@@ -56,7 +78,9 @@ class CodeforcesAdapter {
           medium,
           hard,
           total: solvedProblems.size
-        }
+        },
+        heatmapData,
+        recentSubmissions
       };
 
     } catch (error) {

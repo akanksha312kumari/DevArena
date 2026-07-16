@@ -70,11 +70,11 @@ const Leaderboards = () => {
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
             <tr style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-              <th style={{ padding: '1rem 1.5rem', fontWeight: 600 }}>Rank</th>
-              <th style={{ padding: '1rem 1.5rem', fontWeight: 600 }}>Developer</th>
-              <th style={{ padding: '1rem 1.5rem', fontWeight: 600 }}>Level / XP</th>
-              <th style={{ padding: '1rem 1.5rem', fontWeight: 600 }}>Rating</th>
-              <th style={{ padding: '1rem 1.5rem', fontWeight: 600 }}>Streak</th>
+              <th style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>Rank</th>
+              <th style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>Developer</th>
+              <th style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>Level / XP</th>
+              <th style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>Rating</th>
+              <th style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>Streak</th>
             </tr>
           </thead>
           <tbody>
@@ -87,21 +87,21 @@ const Leaderboards = () => {
                   background: isCurrentUser ? 'rgba(217, 119, 6, 0.05)' : 'transparent',
                   transition: 'background 0.2s',
                 }}>
-                  <td style={{ padding: '1rem 1.5rem', fontWeight: 600 }}>
-                    {rank <= 3 ? <Trophy size={20} color={rank === 1 ? '#F59E0B' : rank === 2 ? '#94A3B8' : '#B45309'} /> : `#${rank}`}
+                  <td style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>
+                    {rank <= 3 ? <Trophy size={18} color={rank === 1 ? '#F59E0B' : rank === 2 ? '#94A3B8' : '#B45309'} /> : `#${rank}`}
                   </td>
-                  <td style={{ padding: '1rem 1.5rem' }}>
+                  <td style={{ padding: '0.75rem 1rem' }}>
                     <div className="flex items-center gap-3">
-                      <img src={u.profile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`} alt={u.username} style={{ width: 32, height: 32, borderRadius: '50%' }} />
+                      <img src={u.profile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`} alt={u.username} style={{ width: 28, height: 28, borderRadius: '50%' }} />
                       <span style={{ fontWeight: isCurrentUser ? 700 : 500 }}>{u.username}</span>
                       {u.badges?.length > 0 && <Star size={14} color="var(--accent-primary)" />}
                     </div>
                   </td>
-                  <td style={{ padding: '1rem 1.5rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
+                  <td style={{ padding: '0.75rem 1rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
                     Lvl {u.level || 1} <span style={{ fontSize: '0.75rem' }}>({u.xp || 0} XP)</span>
                   </td>
-                  <td style={{ padding: '1rem 1.5rem', fontWeight: 600 }}>{u.stats?.globalRating || 0}</td>
-                  <td style={{ padding: '1rem 1.5rem' }}>
+                  <td style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>{u.stats?.globalRating || 0}</td>
+                  <td style={{ padding: '0.75rem 1rem' }}>
                     <div className="flex items-center gap-1" style={{ color: 'var(--accent-streak)', fontWeight: 600 }}>
                       <Flame size={16} /> {u.stats?.dailyStreak || 0}
                     </div>

@@ -8,6 +8,7 @@ const Settings = ({ isDark, setIsDark, setActiveTab }) => {
   const [formData, setFormData] = useState({
     username: user?.username || '',
     bio: user?.profile?.bio || '',
+    avatar: user?.profile?.avatar || '',
     codeforces: user?.platforms?.codeforces || '',
     leetcode: user?.platforms?.leetcode || '',
     codechef: user?.platforms?.codechef || '',
@@ -39,6 +40,7 @@ const Settings = ({ isDark, setIsDark, setActiveTab }) => {
         body: JSON.stringify({
           username: formData.username,
           bio: formData.bio,
+          avatar: formData.avatar,
           platforms: {
             codeforces: formData.codeforces,
             leetcode: formData.leetcode,
@@ -74,6 +76,7 @@ const Settings = ({ isDark, setIsDark, setActiveTab }) => {
         body: JSON.stringify({
           username: formData.username,
           bio: formData.bio,
+          avatar: formData.avatar,
           platforms: {
             codeforces: formData.codeforces,
             leetcode: formData.leetcode,
@@ -184,10 +187,14 @@ const Settings = ({ isDark, setIsDark, setActiveTab }) => {
           <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1.5rem' }}>Profile Information</h3>
           
           <div className="flex items-center gap-4" style={{ marginBottom: '1.5rem' }}>
-            <img src={user?.profile?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=default"} alt="User Avatar" style={{ width: 80, height: 80, borderRadius: '50%', border: '2px solid var(--accent-primary)' }} />
+            <img src={formData.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=default"} alt="User Avatar" style={{ width: 80, height: 80, borderRadius: '50%', border: '2px solid var(--accent-primary)', objectFit: 'cover' }} />
           </div>
 
           <div style={{ display: 'grid', gap: '1rem', marginBottom: '2rem' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Profile Picture URL</label>
+              <input type="text" name="avatar" value={formData.avatar} onChange={handleChange} placeholder="https://example.com/avatar.png" style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--card-border)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />
+            </div>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Username</label>
               <input type="text" name="username" value={formData.username} onChange={handleChange} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--card-border)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' }} />

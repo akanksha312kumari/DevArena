@@ -168,6 +168,67 @@ class PlatformService {
         user.stats.totalContests += stats.contests;
       }
     }
+
+    // Now aggregate heatmap and recent submissions
+    const globalHeatmap = new Map();
+    let globalRecent = [];
+
+    const userObj = user.toJSON();
+
+    for (const [platform, stats] of Object.entries(userObj.platformStats || {})) {
+      if (!stats) continue;
+      
+      if (stats.heatmapData) {
+        for (const [dateStr, count] of Object.entries(stats.heatmapData)) {
+          globalHeatmap.set(dateStr, (globalHeatmap.get(dateStr) || 0) + count);
+        }
+      }
+
+      if (stats.recentSubmissions && Array.isArray(stats.recentSubmissions)) {
+        globalRecent = globalRecent.concat(stats.recentSubmissions);
+      }
+    }
+
+    globalRecent.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    user.recentSubmissions = globalRecent.slice(0, 15);
+    
+    // Calculate streak from aggregated heatmap
+    const sortedDates = Array.from(globalHeatmap.keys()).sort((a, b) => new Date(b) - new Date(a));
+    let currentStreak = 0;
+    
+    if (sortedDates.length > 0) {
+      let streak = 1;
+      const oneDayMs = 24 * 60 * 60 * 1000;
+      let lastDate = new Date(sortedDates[0]);
+      
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      
+      // Calculate diff in days between today and the most recent active date
+      const diffStart = Math.floor((today - lastDate) / oneDayMs);
+      
+      if (diffStart <= 1) {
+        for (let i = 1; i < sortedDates.length; i++) {
+          const currDate = new Date(sortedDates[i]);
+          const diff = Math.floor((lastDate - currDate) / oneDayMs);
+          if (diff === 1) {
+            streak++;
+            lastDate = currDate;
+          } else if (diff === 0) {
+            continue; // Same day (shouldn't happen with set keys but just in case)
+          } else {
+            break;
+          }
+        }
+        currentStreak = streak;
+      }
+    }
+
+    // Always trust the higher streak (if adapter gave a higher one)
+    user.stats.dailyStreak = Math.max(user.stats.dailyStreak, currentStreak);
+    
+    // Save map
+    user.heatmapData = globalHeatmap;
   }
 }
 

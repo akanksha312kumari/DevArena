@@ -231,22 +231,22 @@ const LiveDuels = ({ initialDuelData }) => {
   // Lobby View
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-      <header style={{ marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '1.875rem', fontWeight: 700, marginBottom: '0.5rem' }}>Live Duels</h2>
-        <p style={{ color: 'var(--text-secondary)' }}>Challenge your friends to real-time coding matches.</p>
+      <header style={{ marginBottom: '1.5rem' }}>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.25rem' }}>Live Duels</h2>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Challenge your friends to real-time coding matches.</p>
       </header>
 
-      <div className="card" style={{ textAlign: 'center', padding: '3rem 2rem', marginBottom: '2rem' }}>
-        <div style={{ display: 'inline-flex', padding: '1rem', background: 'rgba(217, 119, 6, 0.1)', borderRadius: '50%', marginBottom: '1.5rem', color: 'var(--accent-primary)' }}>
-          <Swords size={48} />
+      <div className="card" style={{ textAlign: 'center', padding: '1.5rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'inline-flex', padding: '0.75rem', background: 'rgba(217, 119, 6, 0.1)', borderRadius: '50%', marginBottom: '1rem', color: 'var(--accent-primary)' }}>
+          <Swords size={32} />
         </div>
-        <h3 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1rem' }}>Ready for a Duel?</h3>
-        <p style={{ color: 'var(--text-secondary)', maxWidth: '500px', margin: '0 auto 2rem' }}>
+        <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>Ready for a Duel?</h3>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', maxWidth: '500px', margin: '0 auto 1.25rem' }}>
           Head over to the <strong>Friends</strong> tab to challenge someone directly, or wait in the lobby to accept incoming challenges!
         </p>
         
-        <div style={{ padding: '1rem', background: 'var(--bg-secondary)', borderRadius: '8px', display: 'inline-block' }}>
-          <div className="flex items-center gap-2" style={{ color: 'var(--text-muted)' }}>
+        <div style={{ padding: '0.75rem 1.25rem', background: 'var(--bg-secondary)', borderRadius: '8px', display: 'inline-block' }}>
+          <div className="flex items-center gap-2" style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent-success)', display: 'inline-block' }}></span>
             Waiting for challenges...
           </div>
@@ -255,15 +255,15 @@ const LiveDuels = ({ initialDuelData }) => {
 
       {/* Duel History */}
       <div>
-        <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Trophy size={20} style={{ color: 'var(--accent-primary)' }} />
+        <h3 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Trophy size={18} style={{ color: 'var(--accent-primary)' }} />
           Match History
         </h3>
 
         {historyLoading ? (
-          <div className="card" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>Loading history...</div>
+          <div className="card" style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)' }}>Loading history...</div>
         ) : duelHistory.length === 0 ? (
-          <div className="card" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+          <div className="card" style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)' }}>
             No duels played yet. Challenge a friend to get started!
           </div>
         ) : (
@@ -277,16 +277,16 @@ const LiveDuels = ({ initialDuelData }) => {
 
               return (
                 <div key={duel._id || i} className="card" style={{
-                  display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem 1.25rem',
+                  display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem 1rem',
                   borderLeft: `4px solid ${isWin ? 'var(--accent-success)' : isDraw ? 'var(--accent-warning)' : 'var(--accent-danger)'}`
                 }}>
                   {/* Result badge */}
                   <div style={{
-                    width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                    width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                     background: isWin ? 'rgba(34,197,94,0.12)' : isDraw ? 'rgba(217,119,6,0.12)' : 'rgba(239,68,68,0.12)',
                     color: isWin ? 'var(--accent-success)' : isDraw ? 'var(--accent-warning)' : 'var(--accent-danger)'
                   }}>
-                    {isWin ? <Trophy size={22} /> : isDraw ? <Minus size={22} /> : <XCircle size={22} />}
+                    {isWin ? <Trophy size={18} /> : isDraw ? <Minus size={18} /> : <XCircle size={18} />}
                   </div>
 
                   {/* Problem info */}

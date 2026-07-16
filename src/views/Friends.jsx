@@ -221,11 +221,11 @@ const Friends = () => {
             <h4 style={{ fontWeight: 600, marginBottom: '1rem' }}>Search Results</h4>
             <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))' }}>
               {searchResults.map(u => (
-                <div key={u._id} className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-                  <img src={u.profile?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=default"} alt="Avatar" style={{ width: 64, height: 64, borderRadius: '50%', marginBottom: '1rem' }} />
-                  <h4 style={{ fontWeight: 600 }}>{u.username}</h4>
-                  <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>Rating: {u.stats?.globalRating || 0}</p>
-                  <button className="btn btn-outline" onClick={() => sendRequest(u._id)}><UserPlus size={16} /> Add Friend</button>
+                <div key={u._id} className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '1rem' }}>
+                  <img src={u.profile?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=default"} alt="Avatar" style={{ width: 48, height: 48, borderRadius: '50%', marginBottom: '0.75rem', objectFit: 'cover' }} />
+                  <h4 style={{ fontWeight: 600, fontSize: '0.95rem' }}>{u.username}</h4>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>Rating: {u.stats?.globalRating || 0}</p>
+                  <button className="btn btn-outline" style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }} onClick={() => sendRequest(u._id)}><UserPlus size={14} /> Add Friend</button>
                 </div>
               ))}
             </div>
@@ -238,11 +238,11 @@ const Friends = () => {
           <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--accent-primary)' }}>Incoming Friend Requests</h3>
           <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))' }}>
             {friendRequests.map(r => (
-              <div key={r._id} className="card flex items-center justify-between gap-4" style={{ borderColor: 'var(--accent-primary)' }}>
-                <div className="flex items-center gap-4">
-                  <img src={r.profile?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=default"} alt="Avatar" style={{ width: 48, height: 48, borderRadius: '50%' }} />
+              <div key={r._id} className="card flex items-center justify-between gap-3" style={{ borderColor: 'var(--accent-primary)', padding: '0.75rem 1rem' }}>
+                <div className="flex items-center gap-3">
+                  <img src={r.profile?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=default"} alt="Avatar" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
                   <div>
-                    <h4 style={{ fontWeight: 600 }}>{r.username}</h4>
+                    <h4 style={{ fontWeight: 600, fontSize: '0.95rem' }}>{r.username}</h4>
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -261,18 +261,18 @@ const Friends = () => {
       ) : (
         <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
           {friends.map(f => (
-            <div key={f._id} className="card flex flex-col gap-4">
-              <div className="flex items-center gap-4">
-                <img src={f.profile?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=default"} alt="Avatar" style={{ width: 48, height: 48, borderRadius: '50%' }} />
+            <div key={f._id} className="card flex flex-col gap-3" style={{ padding: '0.75rem 1rem' }}>
+              <div className="flex items-center gap-3">
+                <img src={f.profile?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=default"} alt="Avatar" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
                 <div>
-                  <h4 style={{ fontWeight: 600 }}>{f.username}</h4>
-                  <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                  <h4 style={{ fontWeight: 600, fontSize: '0.95rem' }}>{f.username}</h4>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                     Rating: <span style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>{f.stats?.globalRating || 0}</span>
                   </div>
                 </div>
               </div>
-              <button className="btn btn-outline flex items-center justify-center gap-2" onClick={() => openChallengeModal(f)}>
-                <Swords size={16} /> Challenge to Duel
+              <button className="btn btn-outline flex items-center justify-center gap-2" style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }} onClick={() => openChallengeModal(f)}>
+                <Swords size={14} /> Challenge to Duel
               </button>
             </div>
           ))}

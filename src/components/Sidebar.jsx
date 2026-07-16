@@ -1,5 +1,6 @@
 import React from 'react';
 import { LayoutDashboard, Swords, Users, Bot, Trophy, Code2, Settings, Hash, Target } from 'lucide-react';
+import logo from '../assets/logoooo.png';
 import { useAuth } from '../context/AuthContext';
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
@@ -16,10 +17,8 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
 
   return (
     <aside className="sidebar">
-      <div className="flex items-center gap-2" style={{ marginBottom: '2rem', padding: '0 1rem' }}>
-        <div style={{ background: 'var(--accent-primary)', padding: '0.5rem', borderRadius: '8px', color: 'var(--bg-primary)' }}>
-          <Code2 size={24} />
-        </div>
+      <div className="flex items-center gap-3" style={{ marginBottom: '2rem', padding: '0 1rem' }}>
+        <img src={logo} alt="DevArena Logo" style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '50%' }} />
         <h1 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>DevArena</h1>
       </div>
 

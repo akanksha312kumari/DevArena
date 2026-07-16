@@ -18,22 +18,22 @@
 }
 
 body.dark {
-  /* Warm Dark Mode Colors */
-  --bg-primary: #1A120B;
-  --bg-secondary: #241A10;
-  --card-bg: #2C1F14;
-  --card-border: #432E1D;
+  /* LeetCode Minimal Dark Theme */
+  --bg-primary: #1A1A1A;
+  --bg-secondary: #222222;
+  --card-bg: #282828;
+  --card-border: #3E3E3E;
   
-  --text-primary: #F3E5AB;
-  --text-secondary: #D4C49A;
-  --text-muted: #A39678;
+  --text-primary: #EFF1F6;
+  --text-secondary: #9E9E9E;
+  --text-muted: #737373;
 
-  --accent-primary: #FBBF24; /* Warm Gold */
-  --accent-primary-hover: #FDE68A;
+  --accent-primary: #FFA116; /* LeetCode Orange */
+  --accent-primary-hover: #E38D13;
   
-  --accent-streak: #F59E0B;
-  --accent-success: #10B981;
-  --accent-danger: #EF4444;
+  --accent-streak: #FFC01E; /* LeetCode Yellow */
+  --accent-success: #2CBB5D; /* LeetCode Green */
+  --accent-danger: #EF4743; /* LeetCode Red */
 }
 
 body {
@@ -64,9 +64,9 @@ body {
 .card {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
-  border-radius: 12px;
+  border-radius: 8px;
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-  padding: 1.5rem;
+  padding: 1rem;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -161,7 +161,7 @@ body {
 
 .main-content {
   flex: 1;
-  padding: 2rem;
+  padding: 1.5rem;
   overflow-y: auto;
 }
 
@@ -193,8 +193,8 @@ body {
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .recent-activity {

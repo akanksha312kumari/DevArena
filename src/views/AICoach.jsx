@@ -77,12 +77,12 @@ const AICoach = () => {
 
       {/* Chat Interface */}
       <div className="card flex flex-col h-full" style={{ padding: '0', overflow: 'hidden' }}>
-        <header className="flex items-center gap-2" style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--card-border)', background: 'var(--bg-secondary)' }}>
-          <Bot size={24} color="var(--accent-primary)" />
+        <header className="flex items-center gap-2" style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--card-border)', background: 'var(--bg-secondary)' }}>
+          <Bot size={20} color="var(--accent-primary)" />
           <h3 style={{ fontWeight: 600 }}>DevArena Coach</h3>
         </header>
 
-        <div style={{ flex: 1, padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{ flex: 1, padding: '1rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {messages.map((msg, i) => (
             <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div style={{
@@ -98,7 +98,7 @@ const AICoach = () => {
           ))}
         </div>
 
-        <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--card-border)' }}>
+        <div style={{ padding: '0.75rem 1rem', borderTop: '1px solid var(--card-border)' }}>
           <div className="flex gap-2 mb-3 overflow-x-auto" style={{ paddingBottom: '0.5rem' }}>
             <button className="btn btn-outline" style={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }} onClick={() => handleSend("Analyze my recent Codeforces slump")}>
               <Sparkles size={14} /> Analyze my recent Codeforces slump

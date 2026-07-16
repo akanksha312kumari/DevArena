@@ -54,42 +54,54 @@ const userSchema = new mongoose.Schema(
         problemsSolved: { easy: { type: Number, default: 0 }, medium: { type: Number, default: 0 }, hard: { type: Number, default: 0 }, total: { type: Number, default: 0 } },
         streak: { type: Number, default: 0 },
         maxStreak: { type: Number, default: 0 },
-        contests: { type: Number, default: 0 }
+        contests: { type: Number, default: 0 },
+        heatmapData: { type: Map, of: Number, default: {} },
+        recentSubmissions: { type: Array, default: [] }
       },
       leetcode: {
         rating: { type: Number, default: 0 },
         problemsSolved: { easy: { type: Number, default: 0 }, medium: { type: Number, default: 0 }, hard: { type: Number, default: 0 }, total: { type: Number, default: 0 } },
         streak: { type: Number, default: 0 },
         maxStreak: { type: Number, default: 0 },
-        contests: { type: Number, default: 0 }
+        contests: { type: Number, default: 0 },
+        heatmapData: { type: Map, of: Number, default: {} },
+        recentSubmissions: { type: Array, default: [] }
       },
       codechef: {
         rating: { type: Number, default: 0 },
         problemsSolved: { easy: { type: Number, default: 0 }, medium: { type: Number, default: 0 }, hard: { type: Number, default: 0 }, total: { type: Number, default: 0 } },
         streak: { type: Number, default: 0 },
         maxStreak: { type: Number, default: 0 },
-        contests: { type: Number, default: 0 }
+        contests: { type: Number, default: 0 },
+        heatmapData: { type: Map, of: Number, default: {} },
+        recentSubmissions: { type: Array, default: [] }
       },
       atcoder: {
         rating: { type: Number, default: 0 },
         problemsSolved: { easy: { type: Number, default: 0 }, medium: { type: Number, default: 0 }, hard: { type: Number, default: 0 }, total: { type: Number, default: 0 } },
         streak: { type: Number, default: 0 },
         maxStreak: { type: Number, default: 0 },
-        contests: { type: Number, default: 0 }
+        contests: { type: Number, default: 0 },
+        heatmapData: { type: Map, of: Number, default: {} },
+        recentSubmissions: { type: Array, default: [] }
       },
       hackerrank: {
         rating: { type: Number, default: 0 },
         problemsSolved: { easy: { type: Number, default: 0 }, medium: { type: Number, default: 0 }, hard: { type: Number, default: 0 }, total: { type: Number, default: 0 } },
         streak: { type: Number, default: 0 },
         maxStreak: { type: Number, default: 0 },
-        contests: { type: Number, default: 0 }
+        contests: { type: Number, default: 0 },
+        heatmapData: { type: Map, of: Number, default: {} },
+        recentSubmissions: { type: Array, default: [] }
       },
       gfg: {
         rating: { type: Number, default: 0 },
         problemsSolved: { easy: { type: Number, default: 0 }, medium: { type: Number, default: 0 }, hard: { type: Number, default: 0 }, total: { type: Number, default: 0 } },
         streak: { type: Number, default: 0 },
         maxStreak: { type: Number, default: 0 },
-        contests: { type: Number, default: 0 }
+        contests: { type: Number, default: 0 },
+        heatmapData: { type: Map, of: Number, default: {} },
+        recentSubmissions: { type: Array, default: [] }
       }
     },
     stats: {
@@ -132,6 +144,20 @@ const userSchema = new mongoose.Schema(
         title: { type: String, required: true },
         description: { type: String, required: true },
         timestamp: { type: Date, default: Date.now },
+      },
+    ],
+    heatmapData: {
+      type: Map,
+      of: Number,
+      default: {},
+    },
+    recentSubmissions: [
+      {
+        platform: { type: String, required: true },
+        title: { type: String, required: true },
+        difficulty: { type: String, default: 'Unknown' },
+        url: { type: String },
+        timestamp: { type: Date, required: true },
       },
     ],
     lastActivityDate: { type: Date, default: null },
