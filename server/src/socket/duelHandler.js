@@ -63,6 +63,88 @@ module.exports = (io, socket, connectedUsers) => {
     });
   });
 
+  // --- Group Challenge Logic ---
+  socket.on('send_group_challenge', async (data) => {
+    const { roomId, problem, timeLimit } = data;
+    const senderId = connectedUsers.get(socket.id);
+    
+    try {
+      const sender = await User.findById(senderId).select('username profile stats platforms');
+      const p1 = { id: senderId, username: sender?.username, avatar: sender?.profile?.avatar, platforms: sender?.platforms, status: 'Ready' };
+
+      const duelId = `group_duel_${Date.now()}`;
+      activeDuels.set(duelId, {
+        id: duelId,
+        roomId,
+        isGroup: true,
+        players: [p1], // Array of participants
+        problem,
+        timeLimit: timeLimit || 15,
+        status: 'lobby',
+        lobbyEndTime: Date.now() + 15000 // 15 seconds to accept
+      });
+
+      const duelState = activeDuels.get(duelId);
+      
+      // Notify the room
+      io.to(roomId).emit('group_challenge_received', {
+        duelId,
+        senderId,
+        senderName: sender?.username,
+        problem,
+        timeLimit,
+        lobbyEndTime: duelState.lobbyEndTime
+      });
+
+      // Start a timer to transition from lobby to starting
+      setTimeout(() => {
+        const d = activeDuels.get(duelId);
+        if (d && d.status === 'lobby') {
+          if (d.players.length > 1) {
+            d.status = 'starting';
+            d.startTime = Date.now() + 3000;
+            d.endTime = d.startTime + (d.timeLimit * 60 * 1000);
+            
+            // Notify all players who joined
+            d.players.forEach(p => {
+              // Wait, we need their socket id, or we just broadcast to the whole room that the duel started, and frontend checks if they are in d.players
+            });
+            io.to(roomId).emit('group_challenge_started', d);
+            startDuelTimer(io, duelId);
+          } else {
+            // Not enough players joined
+            io.to(roomId).emit('group_challenge_cancelled', { duelId, reason: 'Not enough players joined.' });
+            activeDuels.delete(duelId);
+          }
+        }
+      }, 15000);
+
+    } catch (e) {
+      console.error('Error sending group challenge:', e);
+    }
+  });
+
+  socket.on('accept_group_challenge', async (data) => {
+    const { duelId } = data;
+    const acceptorId = connectedUsers.get(socket.id);
+    const duel = activeDuels.get(duelId);
+    
+    if (!duel || duel.status !== 'lobby') return;
+    
+    // Check if already joined
+    if (duel.players.find(p => p.id === acceptorId)) return;
+
+    try {
+      const acceptor = await User.findById(acceptorId).select('username profile stats platforms');
+      const p = { id: acceptorId, username: acceptor?.username, avatar: acceptor?.profile?.avatar, platforms: acceptor?.platforms, status: 'Ready' };
+      
+      duel.players.push(p);
+      io.to(duel.roomId).emit('group_challenge_player_joined', { duelId, player: p });
+    } catch (e) {
+      console.error('Error accepting group challenge:', e);
+    }
+  });
+
   // --- Live Duel Logic ---
   socket.on('join_duel', (duelId) => {
     socket.join(duelId);
@@ -85,8 +167,17 @@ module.exports = (io, socket, connectedUsers) => {
     const playerIndex = duel.players.findIndex(p => p.id === userId);
     if (playerIndex === -1) return;
 
-    // Simulate mock execution for prototype
-    io.to(duelId).emit('opponent_submission', { status: 'Evaluating...' });
+    // Notify all players in duel
+    duel.players.forEach(p => {
+      if (p.id !== userId) {
+        // Find their socket if they joined the duel room, or just emit to the duelId room
+      }
+    });
+    
+    // Update player status in duel state
+    if (playerIndex !== -1) duel.players[playerIndex].status = 'Evaluating...';
+    
+    io.to(duelId).emit('player_status_update', { userId, status: 'Evaluating...' });
     
     setTimeout(() => {
       // Simulate random pass/fail for demo (70% pass rate)
@@ -94,8 +185,9 @@ module.exports = (io, socket, connectedUsers) => {
       if (passed) {
         handleDuelWin(io, duel, userId);
       } else {
+        if (duel.players[playerIndex]) duel.players[playerIndex].status = 'Failed';
         socket.emit('submission_failed', { message: 'Wrong Answer on Test Case 3.' });
-        socket.to(duelId).emit('opponent_submission', { status: 'Failed' });
+        io.to(duelId).emit('player_status_update', { userId, status: 'Failed' });
       }
     }, 2000);
   });
@@ -163,7 +255,8 @@ const handleDuelWin = (io, duel, winnerId) => {
     endTime: new Date()
   }).catch(err => console.error('Error saving duel to DB:', err));
   
-  const loserId = duel.players.find(p => p.id !== winnerId)?.id;
+  // Find losers (all players except winner)
+  const losers = duel.players.filter(p => p.id !== winnerId);
 
   // Update Winner
   User.findById(winnerId).then(user => {
@@ -188,9 +281,9 @@ const handleDuelWin = (io, duel, winnerId) => {
     }
   }).catch(err => console.error('Error updating winner stats:', err));
 
-  // Update Loser
-  if (loserId) {
-    User.findById(loserId).then(user => {
+  // Update Losers
+  losers.forEach(loser => {
+    User.findById(loser.id).then(user => {
       if (user) {
         user.stats = user.stats || {};
         user.stats.duels = user.stats.duels || { total: 0, wins: 0, losses: 0 };
@@ -202,7 +295,7 @@ const handleDuelWin = (io, duel, winnerId) => {
         user.save();
       }
     }).catch(err => console.error('Error updating loser stats:', err));
-  }
+  });
   
   io.to(duel.id).emit('duel_finished', {
     winner: winnerId,

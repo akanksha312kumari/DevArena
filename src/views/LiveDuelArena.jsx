@@ -45,16 +45,26 @@ const LiveDuelArena = ({ duel, socket, user, onLeave }) => {
       setMatchResult(data);
     };
 
+    const handlePlayerStatusUpdate = (data) => {
+      // Find the player in duel state and update their status (we mutate the local react state by forcing a re-render or updating parent state)
+      // Since duel state comes from props, ideally we'd have a local copy of players, but for now we'll just track opponentStatus for 1v1.
+      if (!duel.isGroup) {
+        setOpponentStatus(data.status);
+      }
+    };
+
     socket.on('opponent_submission', handleOpponentSub);
     socket.on('submission_failed', handleSubFailed);
     socket.on('duel_finished', handleDuelFinished);
+    socket.on('player_status_update', handlePlayerStatusUpdate);
 
     return () => {
       socket.off('opponent_submission', handleOpponentSub);
       socket.off('submission_failed', handleSubFailed);
       socket.off('duel_finished', handleDuelFinished);
+      socket.off('player_status_update', handlePlayerStatusUpdate);
     };
-  }, [socket]);
+  }, [socket, duel]);
 
   const handleSubmit = () => {
     if (isSubmitting || matchResult) return;
@@ -75,26 +85,51 @@ const LiveDuelArena = ({ duel, socket, user, onLeave }) => {
 
   const p1 = duel?.players[0];
   const p2 = duel?.players[1];
+  const isGroup = duel?.isGroup;
   const opponent = p1?.id === user?._id ? p2 : p1;
+
+  // Handle group vs 1v1 header
+  const renderHeaderCenter = () => {
+    if (isGroup) {
+      return (
+        <>
+          <div className="flex flex-col items-center">
+            <img src={user?.profile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username}`} alt="You" style={{ width: 40, height: 40, borderRadius: '50%', border: '2px solid var(--accent-primary)' }} />
+            <span style={{ fontWeight: 600, fontSize: '0.75rem', marginTop: '0.25rem' }}>You</span>
+          </div>
+          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-muted)', fontStyle: 'italic', margin: '0 1rem' }}>VS</div>
+          <div className="flex flex-col items-center justify-center">
+            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--accent-primary)' }}>{duel.players.length - 1}</div>
+            <span style={{ fontWeight: 600, fontSize: '0.75rem', marginTop: '0.25rem', color: 'var(--text-muted)' }}>Others</span>
+          </div>
+        </>
+      );
+    }
+    return (
+      <>
+        <div className="flex flex-col items-center">
+          <img src={user?.profile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username}`} alt="You" style={{ width: 40, height: 40, borderRadius: '50%', border: '2px solid var(--accent-primary)' }} />
+          <span style={{ fontWeight: 600, fontSize: '0.75rem', marginTop: '0.25rem' }}>You</span>
+        </div>
+        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-muted)', fontStyle: 'italic', margin: '0 1rem' }}>VS</div>
+        <div className="flex flex-col items-center">
+          <img src={opponent?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${opponent?.username}`} alt={opponent?.username} style={{ width: 40, height: 40, borderRadius: '50%' }} />
+          <span style={{ fontWeight: 600, fontSize: '0.75rem', marginTop: '0.25rem' }}>{opponent?.username}</span>
+        </div>
+        <div style={{ marginLeft: '1rem', paddingLeft: '1rem', borderLeft: '1px solid var(--card-border)' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Opponent Status</div>
+          <div style={{ fontSize: '0.875rem', fontWeight: 500, color: opponentStatus.includes('Failed') ? 'var(--accent-danger)' : 'var(--text-primary)' }}>{opponentStatus}</div>
+        </div>
+      </>
+    );
+  };
 
   return (
     <div style={{ height: 'calc(100vh - 2rem)', display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '-1rem' }}>
       {/* Header */}
       <header className="card flex items-center justify-between" style={{ padding: '0.75rem 1.5rem', marginBottom: 0 }}>
-        <div className="flex items-center gap-4">
-          <div className="flex flex-col items-center">
-            <img src={user?.profile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username}`} alt="You" style={{ width: 40, height: 40, borderRadius: '50%', border: '2px solid var(--accent-primary)' }} />
-            <span style={{ fontWeight: 600, fontSize: '0.75rem', marginTop: '0.25rem' }}>You</span>
-          </div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-muted)', fontStyle: 'italic' }}>VS</div>
-          <div className="flex flex-col items-center">
-            <img src={opponent?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${opponent?.username}`} alt={opponent?.username} style={{ width: 40, height: 40, borderRadius: '50%' }} />
-            <span style={{ fontWeight: 600, fontSize: '0.75rem', marginTop: '0.25rem' }}>{opponent?.username}</span>
-          </div>
-          <div style={{ marginLeft: '1rem', paddingLeft: '1rem', borderLeft: '1px solid var(--card-border)' }}>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Opponent Status</div>
-            <div style={{ fontSize: '0.875rem', fontWeight: 500, color: opponentStatus.includes('Failed') ? 'var(--accent-danger)' : 'var(--text-primary)' }}>{opponentStatus}</div>
-          </div>
+        <div className="flex items-center">
+          {renderHeaderCenter()}
         </div>
 
         <div className="flex items-center gap-6">
@@ -136,6 +171,25 @@ const LiveDuelArena = ({ duel, socket, user, onLeave }) => {
               <li>Do not cheat or use AI assistants during the duel.</li>
             </ul>
           </div>
+          
+          {isGroup && (
+            <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--card-border)' }}>
+              <h3 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Live Leaderboard</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '150px', overflowY: 'auto' }}>
+                {duel?.players?.map((p, idx) => (
+                  <div key={p.id} className="flex items-center justify-between" style={{ padding: '0.5rem', background: 'var(--bg-secondary)', borderRadius: '6px' }}>
+                    <div className="flex items-center gap-2">
+                      <img src={p.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.username}`} alt={p.username} style={{ width: 24, height: 24, borderRadius: '50%' }} />
+                      <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>{p.username} {p.id === user._id && '(You)'}</span>
+                    </div>
+                    <span style={{ fontSize: '0.75rem', color: p.status === 'Evaluating...' ? 'var(--accent-warning)' : p.status === 'Failed' ? 'var(--accent-danger)' : 'var(--text-muted)' }}>
+                      {p.status || 'Coding...'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right Pane: Code Editor & Console */}

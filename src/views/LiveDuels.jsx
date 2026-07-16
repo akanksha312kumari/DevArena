@@ -180,7 +180,8 @@ const LiveDuels = ({ initialDuelData }) => {
             {duelHistory.map((duel, i) => {
               const isWin = duel.winner && duel.winner._id === user._id;
               const isDraw = !duel.winner;
-              const opponent = duel.players?.find(p => p._id !== user._id);
+              const opponents = duel.players?.filter(p => p._id !== user._id) || [];
+              const opponent = opponents[0];
               const durationMins = duel.timeLimit;
               const date = new Date(duel.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 
@@ -215,9 +216,15 @@ const LiveDuels = ({ initialDuelData }) => {
                   {/* Opponent */}
                   <div style={{ textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)', flexShrink: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                      <img src={opponent?.profile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${opponent?.username}`}
-                        alt={opponent?.username} style={{ width: 24, height: 24, borderRadius: '50%' }} />
-                      <span>{opponent?.username || 'Unknown'}</span>
+                      {opponents.length > 1 ? (
+                        <span>{opponents.length} Others</span>
+                      ) : (
+                        <>
+                          <img src={opponent?.profile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${opponent?.username}`}
+                            alt={opponent?.username} style={{ width: 24, height: 24, borderRadius: '50%' }} />
+                          <span>{opponent?.username || 'Unknown'}</span>
+                        </>
+                      )}
                     </div>
                   </div>
 

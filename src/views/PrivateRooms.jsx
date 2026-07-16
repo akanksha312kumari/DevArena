@@ -18,6 +18,12 @@ const PrivateRooms = () => {
   const [isJoining, setIsJoining] = useState(false);
   const [inviteCode, setInviteCode] = useState('');
   const [newRoomData, setNewRoomData] = useState({ name: '', description: '' });
+  
+  // Group Challenge State
+  const [onlineMembers, setOnlineMembers] = useState(new Set());
+  const [showChallengeModal, setShowChallengeModal] = useState(false);
+  const [challengeData, setChallengeData] = useState({ platform: 'LeetCode', problemId: '', timeLimit: 30 });
+  const [incomingGroupChallenge, setIncomingGroupChallenge] = useState(null);
 
   useEffect(() => {
     fetchRooms();
@@ -123,15 +129,43 @@ const PrivateRooms = () => {
       });
     };
 
+    const handleOnlineMembers = (userIds) => {
+      setOnlineMembers(new Set(userIds));
+    };
+    
+    const handleGroupChallengeReceived = (data) => {
+      // Don't show to the sender
+      if (data.senderId !== user._id) {
+        setIncomingGroupChallenge(data);
+      }
+    };
+    
+    const handleGroupChallengeStarted = (data) => {
+      setIncomingGroupChallenge(null);
+    };
+    
+    const handleGroupChallengeCancelled = (data) => {
+      setIncomingGroupChallenge(null);
+      // Could show toast notification here
+    };
+
     socket.on('receive_message', handleReceiveMessage);
     socket.on('user_typing', handleUserTyping);
     socket.on('user_stop_typing', handleUserStopTyping);
+    socket.on('online_members_update', handleOnlineMembers);
+    socket.on('group_challenge_received', handleGroupChallengeReceived);
+    socket.on('group_challenge_started', handleGroupChallengeStarted);
+    socket.on('group_challenge_cancelled', handleGroupChallengeCancelled);
 
     return () => {
       socket.emit('leave_room', selectedRoom._id || selectedRoom.id);
       socket.off('receive_message', handleReceiveMessage);
       socket.off('user_typing', handleUserTyping);
       socket.off('user_stop_typing', handleUserStopTyping);
+      socket.off('online_members_update', handleOnlineMembers);
+      socket.off('group_challenge_received', handleGroupChallengeReceived);
+      socket.off('group_challenge_started', handleGroupChallengeStarted);
+      socket.off('group_challenge_cancelled', handleGroupChallengeCancelled);
     };
   }, [socket, selectedRoom]);
 
@@ -175,18 +209,55 @@ const PrivateRooms = () => {
     }
   };
 
+  const handleSendGroupChallenge = (e) => {
+    e.preventDefault();
+    if (!socket || !selectedRoom) return;
+
+    if (!challengeData.problemId) return;
+
+    const problem = {
+      platform: challengeData.platform,
+      problemId: challengeData.problemId,
+      title: challengeData.problemId, 
+      difficulty: 'Custom'
+    };
+    
+    socket.emit('send_group_challenge', {
+      roomId: selectedRoom._id || selectedRoom.id,
+      problem,
+      timeLimit: parseInt(challengeData.timeLimit)
+    });
+    
+    setShowChallengeModal(false);
+  };
+
+  const handleAcceptGroupChallenge = () => {
+    if (!incomingGroupChallenge) return;
+    socket.emit('accept_group_challenge', { duelId: incomingGroupChallenge.duelId });
+    // After accepting, wait for the lobby timer to end, which triggers group_challenge_started
+    // Hide the prompt for now, or change it to "Waiting for others..."
+    setIncomingGroupChallenge(null);
+  };
+
   if (selectedRoom) {
     return (
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-        <header className="flex items-center gap-4" style={{ marginBottom: '1.5rem' }}>
-          <button className="btn btn-outline" onClick={() => setSelectedRoom(null)}>Back</button>
-          <div>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 700 }}>{selectedRoom.name}</h2>
-            <div style={{ color: 'var(--text-muted)' }}>
-              {selectedRoom.members?.length || selectedRoom.members} members 
-              {selectedRoom.inviteCode && ` • Invite Code: ${selectedRoom.inviteCode}`}
+        <header className="flex items-center justify-between gap-4" style={{ marginBottom: '1.5rem' }}>
+          <div className="flex items-center gap-4">
+            <button className="btn btn-outline" onClick={() => setSelectedRoom(null)}>Back</button>
+            <div>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 700 }}>{selectedRoom.name}</h2>
+              <div style={{ color: 'var(--text-muted)' }}>
+                {selectedRoom.members?.length || selectedRoom.members} total members • <span style={{ color: 'var(--accent-success)', fontWeight: 600 }}>{onlineMembers.size} online</span>
+                {selectedRoom.inviteCode && ` • Invite Code: ${selectedRoom.inviteCode}`}
+              </div>
             </div>
           </div>
+          {onlineMembers.size > 1 && (
+            <button className="btn btn-primary" onClick={() => setShowChallengeModal(true)}>
+              Challenge Group
+            </button>
+          )}
         </header>
 
         <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', maxHeight: '70vh' }}>
@@ -234,6 +305,79 @@ const PrivateRooms = () => {
             <button type="submit" className="btn btn-primary"><Send size={20} /></button>
           </form>
         </div>
+
+        {/* Group Challenge Modal */}
+        {showChallengeModal && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+            <div className="card" style={{ width: '100%', maxWidth: '400px' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1rem' }}>Challenge {selectedRoom.name}</h3>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                Broadcast a challenge to all {onlineMembers.size} online members. They will have 15 seconds to accept.
+              </p>
+              <form onSubmit={handleSendGroupChallenge} className="flex flex-col gap-4">
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Platform</label>
+                  <select 
+                    value={challengeData.platform}
+                    onChange={e => setChallengeData({...challengeData, platform: e.target.value})}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--card-border)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                  >
+                    <option value="LeetCode">LeetCode</option>
+                    <option value="Codeforces">Codeforces</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Problem URL or Name</label>
+                  <input 
+                    type="text" required
+                    placeholder="e.g. https://leetcode.com/problems/two-sum/"
+                    value={challengeData.problemId}
+                    onChange={e => setChallengeData({...challengeData, problemId: e.target.value})}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--card-border)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Time Limit (Minutes)</label>
+                  <select 
+                    value={challengeData.timeLimit}
+                    onChange={e => setChallengeData({...challengeData, timeLimit: e.target.value})}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--card-border)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                  >
+                    <option value="15">15 Minutes</option>
+                    <option value="30">30 Minutes</option>
+                  </select>
+                </div>
+                <div className="flex gap-2 justify-end mt-2">
+                  <button type="button" className="btn btn-outline" onClick={() => setShowChallengeModal(false)}>Cancel</button>
+                  <button type="submit" className="btn btn-primary">Send Challenge</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Incoming Group Challenge Modal */}
+        {incomingGroupChallenge && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1050 }}>
+            <div className="card text-center" style={{ width: '100%', maxWidth: '400px', animation: 'fadeIn 0.3s' }}>
+              <div style={{ padding: '1rem', background: 'rgba(217, 119, 6, 0.1)', borderRadius: '50%', marginBottom: '1rem', color: 'var(--accent-primary)', display: 'inline-block' }}>
+                <Users size={32} />
+              </div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>Incoming Group Duel!</h3>
+              <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                <strong>{incomingGroupChallenge.senderName}</strong> has initiated a group challenge for <strong>{incomingGroupChallenge.problem?.title}</strong>!
+              </p>
+              <div style={{ padding: '0.5rem', background: 'var(--bg-secondary)', borderRadius: '8px', marginBottom: '1.5rem', fontSize: '0.875rem' }}>
+                Time Limit: <strong>{incomingGroupChallenge.timeLimit} Minutes</strong>
+              </div>
+              <div className="flex gap-4 justify-center">
+                <button className="btn btn-outline" onClick={() => setIncomingGroupChallenge(null)} style={{ flex: 1, borderColor: 'var(--accent-danger)', color: 'var(--accent-danger)' }}>Decline</button>
+                <button className="btn btn-primary" onClick={handleAcceptGroupChallenge} style={{ flex: 1 }}>Accept Duel</button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     );
   }

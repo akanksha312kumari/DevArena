@@ -33,10 +33,12 @@ const App = () => {
     };
 
     socket.on('challenge_accepted', onChallengeAccepted);
+    socket.on('group_challenge_started', onChallengeAccepted);
     socket.on('duel_finished', onDuelFinished);
     
     return () => {
       socket.off('challenge_accepted', onChallengeAccepted);
+      socket.off('group_challenge_started', onChallengeAccepted);
       socket.off('duel_finished', onDuelFinished);
     };
   }, [socket]);
