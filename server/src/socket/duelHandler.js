@@ -2,6 +2,7 @@ const axios = require('axios');
 const User = require('../models/User');
 const Duel = require('../models/Duel');
 const gamificationService = require('../services/gamificationService');
+const platformService = require('../services/platformService');
 
 const activeDuels = new Map(); // duelId -> duel state
 
@@ -24,7 +25,6 @@ module.exports = (io, socket, connectedUsers) => {
     const { senderId, challengeId, problem, timeLimit } = data;
     const acceptorId = connectedUsers.get(socket.id);
     
-    // Fetch user info for UI display
     try {
       const sender = await User.findById(senderId).select('username profile stats platforms');
       const acceptor = await User.findById(acceptorId).select('username profile stats platforms');
@@ -32,30 +32,29 @@ module.exports = (io, socket, connectedUsers) => {
       const p1 = { id: senderId, username: sender?.username, avatar: sender?.profile?.avatar, platforms: sender?.platforms };
       const p2 = { id: acceptorId, username: acceptor?.username, avatar: acceptor?.profile?.avatar, platforms: acceptor?.platforms };
     
-    // Create a new active duel
-    const duelId = `duel_${Date.now()}`;
-    activeDuels.set(duelId, {
-      id: duelId,
-      players: [p1, p2],
-      problem,
-      timeLimit,
-      startTime: Date.now() + 3000, // Starts in 3 seconds for 3-2-1
-      endTime: Date.now() + 3000 + (timeLimit * 60 * 1000),
-      status: 'starting'
-    });
+      const duelId = `duel_${Date.now()}`;
+      activeDuels.set(duelId, {
+        id: duelId,
+        players: [p1, p2],
+        problem,
+        timeLimit: timeLimit || 15,
+        status: 'starting',
+        startTime: Date.now() + 3000,
+        endTime: Date.now() + 3000 + ((timeLimit || 15) * 60 * 1000)
+      });
 
-    const duelState = activeDuels.get(duelId);
+      const duelState = activeDuels.get(duelId);
 
-    // Notify both players to transition to duel view
-    io.to(senderId).emit('challenge_accepted', duelState);
-    io.to(acceptorId).emit('challenge_accepted', duelState);
+      io.to(senderId).emit('challenge_accepted', duelState);
+      io.to(acceptorId).emit('challenge_accepted', duelState);
 
-    // Start server-side authoritative timer
-    startDuelTimer(io, duelId);
+      startDuelTimer(io, duelId);
     } catch (e) {
       console.error('Error accepting challenge:', e);
     }
   });
+
+
 
   socket.on('reject_challenge', (data) => {
     const { senderId } = data;
@@ -77,7 +76,7 @@ module.exports = (io, socket, connectedUsers) => {
   });
 
   socket.on('verify_submission', async (data) => {
-    const { duelId } = data;
+    const { duelId, code } = data;
     const userId = connectedUsers.get(socket.id);
     const duel = activeDuels.get(duelId);
     
@@ -85,31 +84,20 @@ module.exports = (io, socket, connectedUsers) => {
 
     const playerIndex = duel.players.findIndex(p => p.id === userId);
     if (playerIndex === -1) return;
-    const player = duel.players[playerIndex];
 
-    if (duel.problem.platform === 'Codeforces' && player.platforms?.codeforces) {
-      try {
-        const handle = player.platforms.codeforces;
-        const res = await axios.get(`https://codeforces.com/api/user.status?handle=${handle}&from=1&count=10`);
-        if (res.data.status === 'OK') {
-          const submissions = res.data.result;
-          // Check if any recent submission matches the problem ID and is OK and was submitted after duel start
-          // Since we don't have exact strict problemId matching mapping right now, we'll just check if there's a recent OK verdict for simplicity in this prototype.
-          const passed = submissions.some(sub => sub.verdict === 'OK' && (sub.creationTimeSeconds * 1000) > duel.startTime);
-          
-          if (passed) {
-            handleDuelWin(io, duel, userId);
-            return;
-          }
-        }
-      } catch (e) {
-        console.error('Codeforces API error:', e);
+    // Simulate mock execution for prototype
+    io.to(duelId).emit('opponent_submission', { status: 'Evaluating...' });
+    
+    setTimeout(() => {
+      // Simulate random pass/fail for demo (70% pass rate)
+      const passed = Math.random() > 0.3;
+      if (passed) {
+        handleDuelWin(io, duel, userId);
+      } else {
+        socket.emit('submission_failed', { message: 'Wrong Answer on Test Case 3.' });
+        socket.to(duelId).emit('opponent_submission', { status: 'Failed' });
       }
-    }
-
-    // Fallback: Honor System
-    // Broadcast to opponent that user claims victory
-    socket.to(duelId).emit('opponent_claimed_victory', { userId });
+    }, 2000);
   });
 
   socket.on('confirm_opponent_victory', (data) => {
@@ -126,6 +114,40 @@ module.exports = (io, socket, connectedUsers) => {
   });
 };
 
+function recordActivity(user, problem, result) {
+  const dateStr = new Date().toISOString().split('T')[0];
+  
+  if (!user.platformStats) user.platformStats = {};
+  if (!user.platformStats.devarena) {
+    user.platformStats.devarena = { heatmapData: new Map(), recentSubmissions: [] };
+  }
+  
+  const daStats = user.platformStats.devarena;
+  if (!daStats.heatmapData) daStats.heatmapData = new Map();
+  daStats.heatmapData.set(dateStr, (daStats.heatmapData.get(dateStr) || 0) + 1);
+
+  if (!daStats.recentSubmissions) daStats.recentSubmissions = [];
+  daStats.recentSubmissions.unshift({
+    platform: 'devarena',
+    title: `${problem?.title || 'Unknown Problem'} (Duel ${result})`,
+    difficulty: problem?.difficulty || 'Custom',
+    url: problem?.url || problem?.problemId || '',
+    timestamp: new Date()
+  });
+  if (daStats.recentSubmissions.length > 20) daStats.recentSubmissions.pop();
+  
+  // Mark modified for nested Mongoose properties
+  user.markModified('platformStats.devarena.heatmapData');
+  user.markModified('platformStats.devarena.recentSubmissions');
+  user.markModified('platformStats');
+
+  // Recalculate global stats to instantly reflect this new activity
+  platformService.recalculateGlobalStats(user);
+  
+  user.markModified('heatmapData');
+  user.markModified('recentSubmissions');
+}
+
 const handleDuelWin = (io, duel, winnerId) => {
   duel.status = 'finished';
   duel.winner = winnerId;
@@ -141,15 +163,46 @@ const handleDuelWin = (io, duel, winnerId) => {
     endTime: new Date()
   }).catch(err => console.error('Error saving duel to DB:', err));
   
+  const loserId = duel.players.find(p => p.id !== winnerId)?.id;
+
+  // Update Winner
   User.findById(winnerId).then(user => {
     if (user) {
+      user.stats = user.stats || {};
+      user.stats.duels = user.stats.duels || { total: 0, wins: 0, losses: 0 };
+      user.stats.duels.total += 1;
+      user.stats.duels.wins += 1;
+      
+      const winRate = user.stats.duels.wins / user.stats.duels.total;
+      if (user.stats.duels.wins >= 10 && winRate > 0.8) user.stats.arenaRank = 'Grandmaster';
+      else if (user.stats.duels.wins >= 5 && winRate > 0.6) user.stats.arenaRank = 'Master';
+      else if (user.stats.duels.wins >= 1) user.stats.arenaRank = 'Challenger';
+
+      recordActivity(user, duel.problem, 'Win');
+
       gamificationService.awardXP(user, 100, 'Won a duel!', 'duel_win');
       gamificationService.updateStreak(user);
       user.save().then(() => {
         io.to(winnerId).emit('xp_awarded', { amount: 100, reason: 'Won a duel!' });
       });
     }
-  }).catch(err => console.error('Error awarding XP for duel:', err));
+  }).catch(err => console.error('Error updating winner stats:', err));
+
+  // Update Loser
+  if (loserId) {
+    User.findById(loserId).then(user => {
+      if (user) {
+        user.stats = user.stats || {};
+        user.stats.duels = user.stats.duels || { total: 0, wins: 0, losses: 0 };
+        user.stats.duels.total += 1;
+        user.stats.duels.losses += 1;
+        
+        recordActivity(user, duel.problem, 'Loss');
+        
+        user.save();
+      }
+    }).catch(err => console.error('Error updating loser stats:', err));
+  }
   
   io.to(duel.id).emit('duel_finished', {
     winner: winnerId,
@@ -157,6 +210,19 @@ const handleDuelWin = (io, duel, winnerId) => {
   });
   activeDuels.delete(duel.id);
 };
+
+function startDuel(io, duelId, problem) {
+  const duel = activeDuels.get(duelId);
+  if (!duel) return;
+  
+  duel.problem = problem;
+  duel.status = 'starting';
+  duel.startTime = Date.now() + 3000;
+  duel.endTime = duel.startTime + (duel.timeLimit * 60 * 1000);
+  
+  io.to(duelId).emit('duel_state_update', duel);
+  startDuelTimer(io, duelId);
+}
 
 function startDuelTimer(io, duelId) {
   const duel = activeDuels.get(duelId);
@@ -187,7 +253,6 @@ function startDuelTimer(io, duelId) {
         if (d && d.status === 'active') {
           d.status = 'finished';
           d.winner = null;
-          // Persist draw to MongoDB
           Duel.create({
             players: d.players.map(p => p.id),
             winner: null,
@@ -197,6 +262,20 @@ function startDuelTimer(io, duelId) {
             startTime: new Date(d.startTime),
             endTime: new Date()
           }).catch(err => console.error('Error saving draw duel to DB:', err));
+          
+          // Update both players for draw
+          d.players.forEach(p => {
+            User.findById(p.id).then(user => {
+              if (user) {
+                user.stats = user.stats || {};
+                user.stats.duels = user.stats.duels || { total: 0, wins: 0, losses: 0 };
+                user.stats.duels.total += 1;
+                recordActivity(user, d.problem, 'Draw');
+                user.save();
+              }
+            }).catch(e => console.error('Error updating draw stats:', e));
+          });
+
           io.to(duelId).emit('duel_finished', { winner: null, reason: 'time_up' });
           activeDuels.delete(duelId);
         }

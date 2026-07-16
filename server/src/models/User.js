@@ -102,6 +102,15 @@ const userSchema = new mongoose.Schema(
         contests: { type: Number, default: 0 },
         heatmapData: { type: Map, of: Number, default: {} },
         recentSubmissions: { type: Array, default: [] }
+      },
+      devarena: {
+        rating: { type: Number, default: 0 },
+        problemsSolved: { easy: { type: Number, default: 0 }, medium: { type: Number, default: 0 }, hard: { type: Number, default: 0 }, total: { type: Number, default: 0 } },
+        streak: { type: Number, default: 0 },
+        maxStreak: { type: Number, default: 0 },
+        contests: { type: Number, default: 0 },
+        heatmapData: { type: Map, of: Number, default: {} },
+        recentSubmissions: { type: Array, default: [] }
       }
     },
     stats: {
@@ -114,7 +123,13 @@ const userSchema = new mongoose.Schema(
       },
       dailyStreak: { type: Number, default: 0 },
       maxStreak: { type: Number, default: 0 },
-      totalContests: { type: Number, default: 0 }
+      totalContests: { type: Number, default: 0 },
+      duels: {
+        total: { type: Number, default: 0 },
+        wins: { type: Number, default: 0 },
+        losses: { type: Number, default: 0 },
+      },
+      arenaRank: { type: String, default: 'Unranked' }
     },
     friends: [
       {
