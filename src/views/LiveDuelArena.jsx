@@ -3,9 +3,11 @@ import Editor from '@monaco-editor/react';
 import { Play, CheckCircle, XCircle, Clock, AlertTriangle, Terminal, Trophy, Minus } from 'lucide-react';
 
 const LiveDuelArena = ({ duel, socket, user, onLeave }) => {
-  const [code, setCode] = useState('// Write your solution here\nfunction solve() {\n  \n}\n');
+  const [code, setCode] = useState(duel?.problem?.functionSignature || '// Write your solution here\nfunction solve() {\n  \n}\n');
   const [consoleOutput, setConsoleOutput] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRunning, setIsRunning] = useState(false);
+  const [language, setLanguage] = useState('javascript');
   const [remainingTime, setRemainingTime] = useState(0);
   const [opponentStatus, setOpponentStatus] = useState('Coding...');
   const [matchResult, setMatchResult] = useState(null);
@@ -37,7 +39,22 @@ const LiveDuelArena = ({ duel, socket, user, onLeave }) => {
 
     const handleSubFailed = (data) => {
       setIsSubmitting(false);
-      setConsoleOutput(prev => [...prev, { type: 'error', text: data.message || 'Submission failed' }]);
+      setConsoleOutput([{ type: 'error', text: data.message }]);
+      if (data.output) {
+        setConsoleOutput(prev => [...prev, { type: 'info', text: 'Output: ' + data.output }]);
+      }
+    };
+
+    const handleRunCodeResult = (data) => {
+      setIsRunning(false);
+      if (data.error) {
+        setConsoleOutput([{ type: 'error', text: 'Execution Error: ' + data.output }]);
+      } else {
+        setConsoleOutput([
+          { type: data.success ? 'success' : 'error', text: `Sample Tests Passed: ${data.passed}/${data.total}` },
+          { type: 'info', text: 'Output:\n' + data.output }
+        ]);
+      }
     };
 
     const handleDuelFinished = (data) => {
@@ -55,21 +72,30 @@ const LiveDuelArena = ({ duel, socket, user, onLeave }) => {
 
     socket.on('opponent_submission', handleOpponentSub);
     socket.on('submission_failed', handleSubFailed);
+    socket.on('run_code_result', handleRunCodeResult);
     socket.on('duel_finished', handleDuelFinished);
     socket.on('player_status_update', handlePlayerStatusUpdate);
 
     return () => {
       socket.off('opponent_submission', handleOpponentSub);
       socket.off('submission_failed', handleSubFailed);
+      socket.off('run_code_result', handleRunCodeResult);
       socket.off('duel_finished', handleDuelFinished);
       socket.off('player_status_update', handlePlayerStatusUpdate);
     };
   }, [socket, duel]);
 
+  const handleRunCode = () => {
+    if (isRunning || isSubmitting || matchResult) return;
+    setIsRunning(true);
+    setConsoleOutput([{ type: 'info', text: 'Running against sample tests...' }]);
+    socket.emit('run_code', { duelId: duel.id, code: code });
+  };
+
   const handleSubmit = () => {
-    if (isSubmitting || matchResult) return;
+    if (isSubmitting || isRunning || matchResult) return;
     setIsSubmitting(true);
-    setConsoleOutput(prev => [...prev, { type: 'info', text: 'Executing code...' }]);
+    setConsoleOutput([{ type: 'info', text: 'Evaluating against hidden tests...' }]);
     
     socket.emit('verify_submission', {
       duelId: duel.id,
@@ -160,16 +186,39 @@ const LiveDuelArena = ({ duel, socket, user, onLeave }) => {
           </div>
           
           <div style={{ flex: 1, overflowY: 'auto', fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-            <p><strong>Description:</strong></p>
-            <p>Given the constraints of the Live Duel, please read the full problem description on the original platform by clicking the link above.</p>
-            <br />
-            <p><strong>Rules:</strong></p>
-            <ul style={{ paddingLeft: '1.5rem', listStyleType: 'disc' }}>
-              <li>Write your solution in the editor on the right.</li>
-              <li>Click <strong>Submit Code</strong> when ready.</li>
-              <li>First to pass all hidden test cases wins!</li>
-              <li>Do not cheat or use AI assistants during the duel.</li>
-            </ul>
+            {duel?.problem?.description ? (
+              <>
+                <div style={{ whiteSpace: 'pre-wrap', marginBottom: '1.5rem' }}>{duel.problem.description}</div>
+                {duel.problem.examples?.map((ex, i) => (
+                  <div key={i} style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
+                    <strong>Example {i + 1}:</strong><br/>
+                    <span style={{ fontFamily: 'monospace' }}>Input: {ex.input}</span><br/>
+                    <span style={{ fontFamily: 'monospace' }}>Output: {ex.output}</span>
+                  </div>
+                ))}
+                {duel.problem.constraints?.length > 0 && (
+                  <div style={{ marginTop: '1.5rem' }}>
+                    <strong>Constraints:</strong>
+                    <ul style={{ paddingLeft: '1.5rem', listStyleType: 'disc', fontFamily: 'monospace' }}>
+                      {duel.problem.constraints.map((c, i) => <li key={i}>{c}</li>)}
+                    </ul>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <p><strong>Description:</strong></p>
+                <p>Given the constraints of the Live Duel, please read the full problem description on the original platform by clicking the link above.</p>
+                <br />
+                <p><strong>Rules:</strong></p>
+                <ul style={{ paddingLeft: '1.5rem', listStyleType: 'disc' }}>
+                  <li>Write your solution in the editor on the right.</li>
+                  <li>Click <strong>Submit Code</strong> when ready.</li>
+                  <li>First to pass all hidden test cases wins!</li>
+                  <li>Do not cheat or use AI assistants during the duel.</li>
+                </ul>
+              </>
+            )}
           </div>
           
           {isGroup && (
@@ -196,15 +245,31 @@ const LiveDuelArena = ({ duel, socket, user, onLeave }) => {
         <div className="flex flex-col gap-4" style={{ flex: 1, minWidth: 0 }}>
           <div className="clay-card" style={{ flex: 1, padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <div className="flex justify-between items-center" style={{ padding: '1rem', background: 'var(--bg-secondary)', borderBottom: '2px solid var(--bg-primary)' }}>
-              <div style={{ fontSize: '0.875rem', fontWeight: 600 }}>main.js</div>
-              <button 
-                className="clay-btn btn-primary" 
-                style={{ padding: '0.5rem 1.5rem', fontSize: '0.875rem' }} 
-                onClick={handleSubmit}
-                disabled={isSubmitting || matchResult}
-              >
-                {isSubmitting ? 'Running...' : 'Submit Code'}
-              </button>
+              <div className="flex items-center gap-3">
+                <div style={{ fontSize: '0.875rem', fontWeight: 600 }}>main.js</div>
+                <select className="clay-input" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', height: 'auto', borderRadius: '4px' }} value={language} onChange={(e) => setLanguage(e.target.value)}>
+                  <option value="javascript">JavaScript</option>
+                  <option value="python" disabled>Python (Coming soon)</option>
+                </select>
+              </div>
+              <div className="flex gap-2">
+                <button 
+                  className="clay-btn btn-outline" 
+                  style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }} 
+                  onClick={handleRunCode}
+                  disabled={isRunning || isSubmitting || matchResult || remainingTime <= 0}
+                >
+                  {isRunning ? 'Running...' : 'Run Code'}
+                </button>
+                <button 
+                  className="clay-btn btn-primary" 
+                  style={{ padding: '0.5rem 1.5rem', fontSize: '0.875rem' }} 
+                  onClick={handleSubmit}
+                  disabled={isSubmitting || isRunning || matchResult || remainingTime <= 0}
+                >
+                  {isSubmitting ? 'Evaluating...' : 'Submit Code'}
+                </button>
+              </div>
             </div>
             <div style={{ flex: 1 }}>
               <Editor
@@ -232,7 +297,7 @@ const LiveDuelArena = ({ duel, socket, user, onLeave }) => {
                 <span style={{ color: '#666' }}>No output yet. Run your code to see results.</span>
               ) : (
                 consoleOutput.map((out, i) => (
-                  <div key={i} style={{ color: out.type === 'error' ? '#f87171' : out.type === 'success' ? '#4ade80' : '#ccc', marginBottom: '0.25rem' }}>
+                  <div key={i} style={{ color: out.type === 'error' ? '#f87171' : out.type === 'success' ? '#4ade80' : '#ccc', marginBottom: '0.25rem', whiteSpace: 'pre-wrap' }}>
                     {out.type === 'error' ? '✖ ' : out.type === 'success' ? '✔ ' : 'ℹ '}
                     {out.text}
                   </div>

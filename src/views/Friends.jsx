@@ -315,16 +315,15 @@ const Friends = () => {
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Time Limit (Minutes)</label>
-                <select 
+                <input 
+                  type="number" 
+                  min="1"
+                  max="180"
+                  required
                   value={challengeData.timeLimit}
                   onChange={e => setChallengeData({...challengeData, timeLimit: e.target.value})}
                   className="clay-input"
-                >
-                  <option value="15">15 Minutes</option>
-                  <option value="30">30 Minutes</option>
-                  <option value="45">45 Minutes</option>
-                  <option value="60">60 Minutes</option>
-                </select>
+                />
               </div>
               <div className="flex gap-2 justify-end mt-2">
                 <button type="button" className="clay-btn btn-outline" onClick={() => setShowChallengeModal(false)}>Cancel</button>

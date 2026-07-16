@@ -67,6 +67,12 @@ const LiveDuels = ({ initialDuelData }) => {
 
     socket.on('duel_started', (data) => {
       setMatchStatus('active');
+      setActiveDuel(prev => {
+        if (!prev) return prev;
+        // Use client's Date.now() to avoid server/client time desync issues
+        const clientEndTime = Date.now() + (prev.timeLimit * 60 * 1000);
+        return { ...prev, status: 'active', endTime: clientEndTime };
+      });
     });
 
     socket.on('opponent_claimed_victory', (data) => {

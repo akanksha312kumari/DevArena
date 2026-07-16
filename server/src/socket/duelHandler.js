@@ -3,6 +3,8 @@ const User = require('../models/User');
 const Duel = require('../models/Duel');
 const gamificationService = require('../services/gamificationService');
 const platformService = require('../services/platformService');
+const judgingService = require('../services/judgingService');
+const mockProblems = require('../data/mockProblems');
 
 const activeDuels = new Map(); // duelId -> duel state
 
@@ -33,10 +35,13 @@ module.exports = (io, socket, connectedUsers) => {
       const p2 = { id: acceptorId, username: acceptor?.username, avatar: acceptor?.profile?.avatar, platforms: acceptor?.platforms };
     
       const duelId = `duel_${Date.now()}`;
+      
+      const fullProblem = mockProblems.find(p => problem.url && p.url.includes(problem.url)) || mockProblems[0];
+
       activeDuels.set(duelId, {
         id: duelId,
-        players: [p1, p2],
-        problem,
+        players: [p1, p2].map(p => ({ ...p, maxPassed: 0 })),
+        problem: fullProblem, // Use full mock problem with test cases
         timeLimit: timeLimit || 15,
         status: 'starting',
         startTime: Date.now() + 3000,
@@ -72,13 +77,15 @@ module.exports = (io, socket, connectedUsers) => {
       const sender = await User.findById(senderId).select('username profile stats platforms');
       const p1 = { id: senderId, username: sender?.username, avatar: sender?.profile?.avatar, platforms: sender?.platforms, status: 'Ready' };
 
+      const fullProblem = mockProblems.find(p => problem.problemId && p.url.includes(problem.problemId)) || mockProblems[0];
+
       const duelId = `group_duel_${Date.now()}`;
       activeDuels.set(duelId, {
         id: duelId,
         roomId,
         isGroup: true,
-        players: [p1], // Array of participants
-        problem,
+        players: [{ ...p1, maxPassed: 0 }], // Array of participants
+        problem: fullProblem,
         timeLimit: timeLimit || 15,
         status: 'lobby',
         lobbyEndTime: Date.now() + 15000 // 15 seconds to accept
@@ -136,7 +143,7 @@ module.exports = (io, socket, connectedUsers) => {
 
     try {
       const acceptor = await User.findById(acceptorId).select('username profile stats platforms');
-      const p = { id: acceptorId, username: acceptor?.username, avatar: acceptor?.profile?.avatar, platforms: acceptor?.platforms, status: 'Ready' };
+      const p = { id: acceptorId, username: acceptor?.username, avatar: acceptor?.profile?.avatar, platforms: acceptor?.platforms, status: 'Ready', maxPassed: 0 };
       
       duel.players.push(p);
       io.to(duel.roomId).emit('group_challenge_player_joined', { duelId, player: p });
@@ -157,39 +164,59 @@ module.exports = (io, socket, connectedUsers) => {
     }
   });
 
+  socket.on('run_code', async (data) => {
+    const { duelId, code } = data;
+    const duel = activeDuels.get(duelId);
+    const logMsg = `[DEBUG] run_code called with duelId: ${duelId}. duel exists: ${!!duel}, status: ${duel?.status}\n`;
+    require('fs').appendFileSync('debug_duel.log', logMsg);
+    
+    if (!duel || duel.status !== 'active') {
+      require('fs').appendFileSync('debug_duel.log', `[DEBUG] run_code failing because duel not active. Keys in activeDuels: ${Array.from(activeDuels.keys())}\n`);
+      socket.emit('run_code_result', { error: true, output: 'Duel is not active or has already ended.' });
+      return;
+    }
+
+    // Run against sample tests
+    const result = await judgingService.executeJavascript(code, duel.problem.sampleTests);
+    socket.emit('run_code_result', result);
+  });
+
   socket.on('verify_submission', async (data) => {
     const { duelId, code } = data;
     const userId = connectedUsers.get(socket.id);
     const duel = activeDuels.get(duelId);
     
-    if (!duel || duel.status !== 'active') return;
+    console.log(`[DEBUG] verify_submission called with duelId: ${duelId}. duel exists: ${!!duel}, status: ${duel?.status}`);
+    if (!duel || duel.status !== 'active') {
+      socket.emit('submission_failed', { message: 'Duel is not active or has already ended.' });
+      return;
+    }
 
     const playerIndex = duel.players.findIndex(p => p.id === userId);
     if (playerIndex === -1) return;
-
-    // Notify all players in duel
-    duel.players.forEach(p => {
-      if (p.id !== userId) {
-        // Find their socket if they joined the duel room, or just emit to the duelId room
-      }
-    });
     
     // Update player status in duel state
-    if (playerIndex !== -1) duel.players[playerIndex].status = 'Evaluating...';
-    
+    duel.players[playerIndex].status = 'Evaluating...';
     io.to(duelId).emit('player_status_update', { userId, status: 'Evaluating...' });
     
-    setTimeout(() => {
-      // Simulate random pass/fail for demo (70% pass rate)
-      const passed = Math.random() > 0.3;
-      if (passed) {
-        handleDuelWin(io, duel, userId);
-      } else {
-        if (duel.players[playerIndex]) duel.players[playerIndex].status = 'Failed';
-        socket.emit('submission_failed', { message: 'Wrong Answer on Test Case 3.' });
-        io.to(duelId).emit('player_status_update', { userId, status: 'Failed' });
-      }
-    }, 2000);
+    // Run against hidden tests
+    const result = await judgingService.executeJavascript(code, duel.problem.hiddenTests);
+    
+    if (result.passed > duel.players[playerIndex].maxPassed) {
+      duel.players[playerIndex].maxPassed = result.passed;
+    }
+
+    if (result.success) {
+      // 100% passed! Declare winner immediately
+      handleDuelWin(io, duel, userId);
+    } else {
+      duel.players[playerIndex].status = 'Failed';
+      io.to(duelId).emit('player_status_update', { userId, status: 'Failed' });
+      socket.emit('submission_failed', { 
+        message: `Failed on test cases. Passed ${result.passed}/${result.total}.`,
+        output: result.output
+      });
+    }
   });
 
   socket.on('confirm_opponent_victory', (data) => {
@@ -203,6 +230,14 @@ module.exports = (io, socket, connectedUsers) => {
   socket.on('dispute_victory', (data) => {
     const { duelId, claimantId } = data;
     io.to(duelId).emit('victory_disputed', { claimantId });
+  });
+
+  socket.on('debug_dump', () => {
+    const duels = {};
+    for (const [k, v] of activeDuels.entries()) {
+      duels[k] = { ...v };
+    }
+    socket.emit('debug_dump_result', duels);
   });
 };
 
@@ -343,35 +378,56 @@ function startDuelTimer(io, duelId) {
         const remainingTime = activeDuel.endTime - Date.now();
         setTimeout(() => {
           const d = activeDuels.get(duelId);
-        if (d && d.status === 'active') {
-          d.status = 'finished';
-          d.winner = null;
-          Duel.create({
-            players: d.players.map(p => p.id),
-            winner: null,
-            problem: d.problem,
-            timeLimit: d.timeLimit,
-            status: 'finished',
-            startTime: new Date(d.startTime),
-            endTime: new Date()
-          }).catch(err => console.error('Error saving draw duel to DB:', err));
-          
-          // Update both players for draw
-          d.players.forEach(p => {
-            User.findById(p.id).then(user => {
-              if (user) {
-                user.stats = user.stats || {};
-                user.stats.duels = user.stats.duels || { total: 0, wins: 0, losses: 0 };
-                user.stats.duels.total += 1;
-                recordActivity(user, d.problem, 'Draw');
-                user.save();
+          if (d && d.status === 'active') {
+            d.status = 'finished';
+            
+            // Determine winner by maxPassed
+            let bestPlayer = null;
+            let maxScore = -1;
+            let isTie = false;
+            
+            d.players.forEach(p => {
+              if (p.maxPassed > maxScore) {
+                maxScore = p.maxPassed;
+                bestPlayer = p;
+                isTie = false;
+              } else if (p.maxPassed === maxScore && maxScore > 0) {
+                isTie = true;
               }
-            }).catch(e => console.error('Error updating draw stats:', e));
-          });
+            });
 
-          io.to(duelId).emit('duel_finished', { winner: null, reason: 'time_up' });
-          activeDuels.delete(duelId);
-        }
+            if (bestPlayer && !isTie && maxScore > 0) {
+              handleDuelWin(io, d, bestPlayer.id);
+            } else {
+              // Tie or nobody passed anything
+              d.winner = null;
+              Duel.create({
+                players: d.players.map(p => p.id),
+                winner: null,
+                problem: d.problem,
+                timeLimit: d.timeLimit,
+                status: 'finished',
+                startTime: new Date(d.startTime),
+                endTime: new Date()
+              }).catch(err => console.error('Error saving draw duel to DB:', err));
+              
+              // Update both players for draw
+              d.players.forEach(p => {
+                User.findById(p.id).then(user => {
+                  if (user) {
+                    user.stats = user.stats || {};
+                    user.stats.duels = user.stats.duels || { total: 0, wins: 0, losses: 0 };
+                    user.stats.duels.total += 1;
+                    recordActivity(user, d.problem, 'Draw');
+                    user.save();
+                  }
+                }).catch(e => console.error('Error updating draw stats:', e));
+              });
+
+              io.to(duelId).emit('duel_finished', { winner: null, reason: 'time_up' });
+              activeDuels.delete(duelId);
+            }
+          }
         }, remainingTime);
       }
     }
