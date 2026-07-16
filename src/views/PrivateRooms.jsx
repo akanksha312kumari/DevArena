@@ -107,10 +107,15 @@ const PrivateRooms = () => {
   useEffect(() => {
     if (!socket || !selectedRoom) return;
 
+    setMessages([]); // clear previous room's messages
     socket.emit('join_room', selectedRoom._id || selectedRoom.id);
 
     const handleReceiveMessage = (data) => {
       setMessages((prev) => [...prev, data]);
+    };
+
+    const handleRoomHistory = (history) => {
+      setMessages(history);
     };
 
     const handleUserTyping = ({ username }) => {
@@ -150,6 +155,7 @@ const PrivateRooms = () => {
     };
 
     socket.on('receive_message', handleReceiveMessage);
+    socket.on('room_history', handleRoomHistory);
     socket.on('user_typing', handleUserTyping);
     socket.on('user_stop_typing', handleUserStopTyping);
     socket.on('online_members_update', handleOnlineMembers);
@@ -160,6 +166,7 @@ const PrivateRooms = () => {
     return () => {
       socket.emit('leave_room', selectedRoom._id || selectedRoom.id);
       socket.off('receive_message', handleReceiveMessage);
+      socket.off('room_history', handleRoomHistory);
       socket.off('user_typing', handleUserTyping);
       socket.off('user_stop_typing', handleUserStopTyping);
       socket.off('online_members_update', handleOnlineMembers);

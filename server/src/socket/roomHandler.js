@@ -1,3 +1,5 @@
+const Message = require('../models/Message');
+
 module.exports = (io, socket, connectedUsers) => {
   // Join a specific room
   socket.on('join_room', (roomId) => {
@@ -17,6 +19,23 @@ module.exports = (io, socket, connectedUsers) => {
 
     // Send the list of online user IDs in this room to everyone
     broadcastOnlineMembers(io, roomId, connectedUsers);
+
+    // Fetch and send message history
+    Message.find({ room: roomId })
+      .populate('sender', 'username')
+      .sort({ createdAt: 1 })
+      .limit(100)
+      .then((messages) => {
+        const formattedMessages = messages.map(m => ({
+          roomId: m.room,
+          message: m.content,
+          senderId: m.sender._id,
+          senderName: m.sender.username,
+          timestamp: m.createdAt
+        }));
+        socket.emit('room_history', formattedMessages);
+      })
+      .catch(err => console.error('Error fetching room history:', err));
   });
 
   // Leave a specific room
@@ -35,16 +54,27 @@ module.exports = (io, socket, connectedUsers) => {
   });
 
   // Handle incoming chat messages
-  socket.on('send_message', (data) => {
+  socket.on('send_message', async (data) => {
     const { roomId, message, senderId, senderName, timestamp } = data;
-    // Broadcast message to all other clients in the room
-    socket.to(roomId).emit('receive_message', {
-      roomId,
-      message,
-      senderId,
-      senderName,
-      timestamp: timestamp || new Date()
-    });
+    
+    try {
+      const newMsg = await Message.create({
+        room: roomId,
+        sender: senderId,
+        content: message
+      });
+      
+      // Broadcast message to all other clients in the room
+      socket.to(roomId).emit('receive_message', {
+        roomId,
+        message,
+        senderId,
+        senderName,
+        timestamp: newMsg.createdAt
+      });
+    } catch (err) {
+      console.error('Error saving message:', err);
+    }
   });
 
   // Typing indicators
