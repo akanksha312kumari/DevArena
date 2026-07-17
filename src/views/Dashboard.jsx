@@ -94,6 +94,28 @@ const Dashboard = ({ setActiveTab, setSelectedPotd }) => {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [showAllSubmissions, setShowAllSubmissions] = useState(false);
+  const [arenaRank, setArenaRank] = useState(null);
+
+  useEffect(() => {
+    const fetchRank = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/leaderboard?type=xp&filter=global`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          const rankIndex = data.findIndex(u => u.username === user?.username);
+          setArenaRank(rankIndex !== -1 ? rankIndex + 1 : '50+');
+        }
+      } catch (err) {
+        console.error("Failed to fetch rank", err);
+      }
+    };
+    if (user?.username) {
+      fetchRank();
+    }
+  }, [user]);
   
   const stats = user?.stats || { globalRating: 0, dailyStreak: 0, problemsSolved: { easy: 0, medium: 0, hard: 0 } };
   const totalSolved = (stats.problemsSolved?.total) || ((stats.problemsSolved?.easy || 0) + (stats.problemsSolved?.medium || 0) + (stats.problemsSolved?.hard || 0));
@@ -283,7 +305,7 @@ const Dashboard = ({ setActiveTab, setSelectedPotd }) => {
                 <span style={{ fontSize: '0.875rem', fontWeight: 700 }}>Arena Rank</span>
               </div>
               <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--accent-primary)' }}>
-                {user?.stats?.arenaRank ? `#${user.stats.arenaRank}` : 'Unranked'}
+                {arenaRank ? `#${arenaRank}` : 'Loading...'}
               </div>
             </div>
           </div>
@@ -466,9 +488,14 @@ const Dashboard = ({ setActiveTab, setSelectedPotd }) => {
                     </div>
                     {platform}
                   </div>
-                  <div className="flex justify-between" style={{ fontSize: '0.875rem', fontWeight: 600 }}>
-                    <span style={{ color: 'var(--text-muted)' }}>Rating: <span style={{ color: 'var(--accent-primary)' }}>{pStats.rating || 'N/A'}</span></span>
-                    <span style={{ color: 'var(--text-muted)' }}>Solved: <span style={{ color: 'var(--accent-success)' }}>{pStats.problemsSolved?.total || 0}</span></span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.875rem', fontWeight: 600 }}>
+                    <div className="flex justify-between">
+                      <span style={{ color: 'var(--text-muted)' }}>Rating: <span style={{ color: 'var(--accent-primary)' }}>{pStats.rating || 'N/A'}</span></span>
+                      <span style={{ color: 'var(--text-muted)' }}>Contests: <span style={{ color: 'var(--accent-warning)' }}>{pStats.contests || 0}</span></span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span style={{ color: 'var(--text-muted)' }}>Solved: <span style={{ color: 'var(--accent-success)' }}>{pStats.problemsSolved?.total || 0}</span></span>
+                    </div>
                   </div>
                 </div>
               );
