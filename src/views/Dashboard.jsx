@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Flame, Trophy, Activity, Swords, Code, ExternalLink, Calendar, Star, TrendingUp, CheckCircle, XCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 
 const Heatmap = ({ heatmapData = {} }) => {
   // Generate a mock or real heatmap (last 52 weeks = 364 days for a full horizontal heatmap)
@@ -148,6 +148,24 @@ const Dashboard = ({ setActiveTab, setSelectedPotd }) => {
   const chartData = totalSolved === 0 ? [{ name: 'Empty', value: 1, color: 'var(--card-border)' }] : pieData;
 
   const recentSubmissions = user?.recentSubmissions || [];
+
+  // Activity Line Chart Data
+  const activityMap = {};
+  const platformsSet = new Set();
+  if (user?.platformStats) {
+    Object.entries(user.platformStats).forEach(([platform, pStats]) => {
+      if (pStats?.heatmapData) {
+        platformsSet.add(platform);
+        Object.entries(pStats.heatmapData).forEach(([date, count]) => {
+          if (!activityMap[date]) activityMap[date] = { date };
+          activityMap[date][platform] = count;
+        });
+      }
+    });
+  }
+  const activityChartData = Object.values(activityMap)
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    .slice(-30); // Show up to last 30 active days
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -368,6 +386,33 @@ const Dashboard = ({ setActiveTab, setSelectedPotd }) => {
           <Heatmap heatmapData={user?.heatmapData || {}} />
         </div>
       </div>
+
+      {/* Activity Timeline Chart */}
+      {activityChartData.length > 0 && (
+        <div className="clay-card">
+          <h3 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>Activity Timeline</h3>
+          <div style={{ height: '300px', width: '100%' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={activityChartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--clay-outer-dark)" opacity={0.2} />
+                <XAxis dataKey="date" stroke="var(--text-muted)" fontSize={12} tickFormatter={(tick) => new Date(tick).toLocaleDateString('default', { month: 'short', day: 'numeric' })} />
+                <YAxis stroke="var(--text-muted)" fontSize={12} allowDecimals={false} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: 'var(--card-bg)', border: 'none', borderRadius: '8px', boxShadow: '2px 2px 10px var(--clay-outer-dark)' }}
+                  itemStyle={{ color: 'var(--text-primary)' }}
+                />
+                <Legend />
+                {Array.from(platformsSet).map((platform, i) => {
+                  const colors = ['#10B981', '#3B82F6', '#8B5CF6', '#F59E0B', '#EF4444', '#EC4899', '#14B8A6'];
+                  return (
+                    <Line key={platform} name={platform.charAt(0).toUpperCase() + platform.slice(1)} type="monotone" dataKey={platform} stroke={colors[i % colors.length]} strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                  );
+                })}
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
 
       {/* Recent Submissions */}
       <div className="clay-card">

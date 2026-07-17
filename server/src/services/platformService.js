@@ -194,8 +194,26 @@ class PlatformService {
     // Calculate streak from aggregated heatmap
     const sortedDatesStr = Array.from(globalHeatmap.keys()).sort((a, b) => b.localeCompare(a));
     let currentStreak = 0;
+    let maxComputedStreak = 0;
     
     if (sortedDatesStr.length > 0) {
+      // Calculate max streak from all historical dates
+      let tempMax = 0;
+      let currentTemp = 1;
+      for (let i = 0; i < sortedDatesStr.length - 1; i++) {
+         const d1 = new Date(sortedDatesStr[i]);
+         const d2 = new Date(sortedDatesStr[i+1]);
+         const diff = Math.round((d1 - d2) / 86400000);
+         if (diff === 1) {
+            currentTemp++;
+         } else if (diff > 1) {
+            if (currentTemp > tempMax) tempMax = currentTemp;
+            currentTemp = 1;
+         }
+      }
+      if (currentTemp > tempMax) tempMax = currentTemp;
+      maxComputedStreak = tempMax;
+      
       const todayDate = new Date();
       const todayStr = todayDate.toISOString().split('T')[0];
       const yesterdayDate = new Date(todayDate.getTime() - 86400000);
@@ -226,7 +244,7 @@ class PlatformService {
 
     // Always trust the higher streak (if adapter gave a higher one)
     user.stats.dailyStreak = Math.max(user.stats.dailyStreak, currentStreak);
-    user.stats.maxStreak = Math.max(user.stats.maxStreak || 0, user.stats.dailyStreak);
+    user.stats.maxStreak = Math.max(user.stats.maxStreak || 0, user.stats.dailyStreak, maxComputedStreak);
     
     // Save map
     user.heatmapData = globalHeatmap;
