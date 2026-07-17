@@ -28,7 +28,9 @@ const aiChat = async (req, res) => {
     Global Rating: ${user.stats.globalRating}.
     Problems Solved: ${user.stats.problemsSolved.easy} Easy, ${user.stats.problemsSolved.medium} Medium, ${user.stats.problemsSolved.hard} Hard.
     Their badges: ${user.badges.join(', ') || 'None'}.
-    Provide actionable, concise, and encouraging advice for improving their coding skills based on their stats.`;
+    Provide actionable, concise, and encouraging advice for improving their coding skills based on their stats.
+    
+    CRITICAL RULE: You must ONLY answer questions related to coding, programming, algorithms, computer science, or the user's learning journey on DevArena. If the user asks ANY off-topic questions (e.g., sports, celebrities like "who is messi", politics, movies, etc.), you MUST politely refuse and ask them to please stick to relevant coding and platform topics.`;
 
     // Map messages for Gemini Chat
     // Google GenAI sdk uses 'user' and 'model'
