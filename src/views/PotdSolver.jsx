@@ -12,9 +12,9 @@ const PotdSolver = ({ potd, setActiveTab }) => {
   const [solved, setSolved] = useState(false);
 
   const getLanguageStub = (lang) => {
-    if (lang === 'javascript') return potd?.functionSignature || '// Write your solution here\\nfunction solve() {\\n  \\n}\\n';
-    if (lang === 'java') return 'public class Solution {\\n    // Ensure your function matches the required signature\\n    public static void solve() {\\n        \\n    }\\n}\\n';
-    if (lang === 'cpp') return '#include <iostream>\\nusing namespace std;\\n\\n// Ensure your function matches the required signature\\nvoid solve() {\\n    \\n}\\n';
+    if (lang === 'javascript') return potd?.functionSignature || '// Write your solution here\nfunction solve() {\n  \n}\n';
+    if (lang === 'java') return 'public class Solution {\n    // Ensure your function matches the required signature\n    public static void solve() {\n        \n    }\n}\n';
+    if (lang === 'cpp') return '#include <iostream>\nusing namespace std;\n\n// Ensure your function matches the required signature\nvoid solve() {\n    \n}\n';
     return '';
   };
 
@@ -107,8 +107,14 @@ const PotdSolver = ({ potd, setActiveTab }) => {
             </div>
           </div>
           
-          <div style={{ flex: 1, overflowY: 'auto', fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-            {potd.description && <div style={{ whiteSpace: 'pre-wrap', marginBottom: '1.5rem' }}>{potd.description}</div>}
+          <div style={{ flex: 1, overflowY: 'auto', fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6, padding: '1rem' }}>
+            {potd.description ? (
+              <div style={{ whiteSpace: 'pre-wrap', marginBottom: '1.5rem' }}>{potd.description}</div>
+            ) : (
+              <div style={{ padding: '1rem', background: 'rgba(255,0,0,0.1)', color: 'red', borderRadius: '8px' }}>
+                <strong>Data is stale!</strong> Please click "Dashboard" in the sidebar, then refresh the page to load the new POTD from the database!
+              </div>
+            )}
 
             {potd.sampleTests && potd.sampleTests.length > 0 && (
               <div className="mb-6">
@@ -154,24 +160,26 @@ const PotdSolver = ({ potd, setActiveTab }) => {
               </div>
             </div>
             
-            <div className="flex-1" style={{ position: 'relative' }}>
-              <Editor
-                height="100%"
-                defaultLanguage="javascript"
-                language={language === 'cpp' ? 'cpp' : language === 'java' ? 'java' : 'javascript'}
-                theme="vs-dark"
-                value={code}
-                onChange={setCode}
-                options={{
-                  minimap: { enabled: false },
-                  fontSize: 14,
-                  fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-                  lineHeight: 24,
-                  padding: { top: 16 },
-                  scrollBeyondLastLine: false,
-                  readOnly: solved
-                }}
-              />
+            <div className="flex-1" style={{ position: 'relative', minHeight: '300px' }}>
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+                <Editor
+                  height="100%"
+                  defaultLanguage="javascript"
+                  language={language === 'cpp' ? 'cpp' : language === 'java' ? 'java' : 'javascript'}
+                  theme="vs-dark"
+                  value={code}
+                  onChange={setCode}
+                  options={{
+                    minimap: { enabled: false },
+                    fontSize: 14,
+                    fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                    lineHeight: 24,
+                    padding: { top: 16 },
+                    scrollBeyondLastLine: false,
+                    readOnly: solved
+                  }}
+                />
+              </div>
               {solved && (
                 <div style={{
                   position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,

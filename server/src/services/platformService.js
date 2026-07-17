@@ -129,11 +129,10 @@ class PlatformService {
         totalContests: 0
       };
     } else {
-      // Reset to 0 before aggregating
+      // Reset to 0 before aggregating (preserve maxStreak)
       user.stats.problemsSolved = { easy: 0, medium: 0, hard: 0, total: 0 };
       user.stats.globalRating = 0;
       user.stats.dailyStreak = 0;
-      user.stats.maxStreak = 0;
       user.stats.totalContests = 0;
     }
 
@@ -193,29 +192,30 @@ class PlatformService {
     user.recentSubmissions = globalRecent.slice(0, 15);
     
     // Calculate streak from aggregated heatmap
-    const sortedDates = Array.from(globalHeatmap.keys()).sort((a, b) => new Date(b) - new Date(a));
+    const sortedDatesStr = Array.from(globalHeatmap.keys()).sort((a, b) => b.localeCompare(a));
     let currentStreak = 0;
     
-    if (sortedDates.length > 0) {
-      let streak = 1;
-      const oneDayMs = 24 * 60 * 60 * 1000;
-      let lastDate = new Date(sortedDates[0]);
+    if (sortedDatesStr.length > 0) {
+      const todayDate = new Date();
+      const todayStr = todayDate.toISOString().split('T')[0];
+      const yesterdayDate = new Date(todayDate.getTime() - 86400000);
+      const yesterdayStr = yesterdayDate.toISOString().split('T')[0];
       
-      const today = new Date();
-      today.setHours(0,0,0,0);
+      let streak = 0;
+      let checkDate = null;
       
-      // Calculate diff in days between today and the most recent active date
-      const diffStart = Math.floor((today - lastDate) / oneDayMs);
+      if (globalHeatmap.has(todayStr)) {
+         checkDate = new Date(todayStr);
+      } else if (globalHeatmap.has(yesterdayStr)) {
+         checkDate = new Date(yesterdayStr);
+      }
       
-      if (diffStart <= 1) {
-        for (let i = 1; i < sortedDates.length; i++) {
-          const currDate = new Date(sortedDates[i]);
-          const diff = Math.floor((lastDate - currDate) / oneDayMs);
-          if (diff === 1) {
+      if (checkDate) {
+        while (true) {
+          const checkStr = checkDate.toISOString().split('T')[0];
+          if (globalHeatmap.has(checkStr)) {
             streak++;
-            lastDate = currDate;
-          } else if (diff === 0) {
-            continue; // Same day (shouldn't happen with set keys but just in case)
+            checkDate = new Date(checkDate.getTime() - 86400000);
           } else {
             break;
           }
@@ -226,6 +226,7 @@ class PlatformService {
 
     // Always trust the higher streak (if adapter gave a higher one)
     user.stats.dailyStreak = Math.max(user.stats.dailyStreak, currentStreak);
+    user.stats.maxStreak = Math.max(user.stats.maxStreak || 0, user.stats.dailyStreak);
     
     // Save map
     user.heatmapData = globalHeatmap;

@@ -316,10 +316,24 @@ const Dashboard = ({ setActiveTab, setSelectedPotd }) => {
             <button 
               className="clay-btn btn-primary" 
               style={{ width: '100%', fontSize: '1rem' }}
-              onClick={() => {
-                if (potd) {
-                  setSelectedPotd(potd);
-                  setActiveTab('potd-solver');
+              onClick={async () => {
+                try {
+                  const token = localStorage.getItem('token');
+                  const res = await fetch('http://localhost:5000/api/problems/potd', {
+                    headers: { Authorization: `Bearer ${token}` }
+                  });
+                  const data = await res.json();
+                  if (data && data.title) {
+                    setPotd(data);
+                    setSelectedPotd(data);
+                    setActiveTab('potd-solver');
+                  }
+                } catch (err) {
+                  console.error("Failed to fetch fresh POTD", err);
+                  if (potd) {
+                    setSelectedPotd(potd);
+                    setActiveTab('potd-solver');
+                  }
                 }
               }}
               disabled={!potd}
@@ -342,7 +356,8 @@ const Dashboard = ({ setActiveTab, setSelectedPotd }) => {
           
           <div className="flex gap-4 items-center" style={{ fontSize: '0.875rem', fontWeight: 600 }}>
             <span style={{ color: 'var(--text-muted)' }}>Total active days: <span style={{ color: 'var(--text-primary)' }}>{Object.keys(user?.heatmapData || {}).length}</span></span>
-            <span style={{ color: 'var(--text-muted)' }}>Max streak: <span style={{ color: 'var(--text-primary)' }}>{stats.maxStreak}</span></span>
+            <span style={{ color: 'var(--text-muted)' }}>Current streak: <span style={{ color: 'var(--text-primary)' }}>{stats.dailyStreak || 0}</span></span>
+            <span style={{ color: 'var(--text-muted)' }}>Max streak: <span style={{ color: 'var(--text-primary)' }}>{Math.max(stats.maxStreak || 0, stats.dailyStreak || 0)}</span></span>
             <select className="clay-input" style={{ padding: '0.5rem 1rem', width: 'auto' }}>
                <option>Current</option>
             </select>
@@ -445,11 +460,30 @@ const Dashboard = ({ setActiveTab, setSelectedPotd }) => {
                           </span>
                         ) : (
                           <button 
-                            className="btn btn-primary text-sm px-4 py-1.5"
-                            onClick={() => {
-                              setSelectedPotd(p);
-                              setActiveTab('potd-solver');
-                              setShowHistoryModal(false);
+                            className="clay-btn btn-primary"
+                            style={{ padding: '0.4rem 1rem', fontSize: '0.875rem' }}
+                            onClick={async () => {
+                              try {
+                                const token = localStorage.getItem('token');
+                                const res = await fetch(`http://localhost:5000/api/problems/${p._id}`, {
+                                  headers: { Authorization: `Bearer ${token}` }
+                                });
+                                const data = await res.json();
+                                if (data && data.title) {
+                                  setSelectedPotd(data);
+                                  setShowHistoryModal(false);
+                                  setActiveTab('potd-solver');
+                                } else {
+                                  setSelectedPotd(p);
+                                  setShowHistoryModal(false);
+                                  setActiveTab('potd-solver');
+                                }
+                              } catch (err) {
+                                console.error("Failed to fetch fresh history problem", err);
+                                setSelectedPotd(p);
+                                setShowHistoryModal(false);
+                                setActiveTab('potd-solver');
+                              }
                             }}
                           >
                             Solve

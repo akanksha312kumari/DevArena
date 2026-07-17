@@ -74,8 +74,54 @@ const solvePOTD = async (req, res) => {
     const result = await judgingService.executeCode(code, problem.hiddenTests, language);
     
     if (result.success) {
-      // Mark as solved for user
-      await User.findByIdAndUpdate(req.user._id, { $addToSet: { solvedPotds: problemId } });
+      // Mark as solved for user and log activity
+      const user = await User.findById(req.user._id);
+      if (user && !user.solvedPotds.includes(problemId)) {
+        user.solvedPotds.push(problemId);
+        
+        if (!user.platformStats) user.platformStats = {};
+        if (!user.platformStats.devarena) {
+          user.platformStats.devarena = { heatmapData: new Map(), recentSubmissions: [] };
+        }
+        
+        const dateStr = new Date().toISOString().split('T')[0];
+        const daStats = user.platformStats.devarena;
+        
+        if (!daStats.heatmapData) daStats.heatmapData = new Map();
+        daStats.heatmapData.set(dateStr, (daStats.heatmapData.get(dateStr) || 0) + 1);
+        
+        daStats.recentSubmissions.unshift({
+          title: problem.title,
+          platform: 'devarena',
+          timestamp: new Date(),
+          url: `/potd`
+        });
+        
+        if (daStats.recentSubmissions.length > 20) {
+          daStats.recentSubmissions = daStats.recentSubmissions.slice(0, 20);
+        }
+        
+        if (!daStats.problemsSolved) {
+          daStats.problemsSolved = { easy: 0, medium: 0, hard: 0, total: 0 };
+        }
+        daStats.problemsSolved.total += 1;
+        const diffLower = (problem.difficulty || 'Easy').toLowerCase();
+        if (daStats.problemsSolved[diffLower] !== undefined) {
+          daStats.problemsSolved[diffLower] += 1;
+        }
+        
+        user.markModified('platformStats.devarena');
+        
+        // Use gamification service for XP
+        const gamificationService = require('../services/gamificationService');
+        gamificationService.awardXP(user, 10, 'Solved Problem of the Day');
+        
+        // Recalculate global heatmap and overall universal streak
+        const platformService = require('../services/platformService');
+        platformService.recalculateGlobalStats(user);
+        
+        await user.save();
+      }
     }
     
     res.json(result);
