@@ -113,6 +113,7 @@ const userSchema = new mongoose.Schema(
         recentSubmissions: { type: Array, default: [] }
       }
     },
+    solvedPotds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Problem' }],
     stats: {
       globalRating: { type: Number, default: 0 },
       problemsSolved: {

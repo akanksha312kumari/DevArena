@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Flame, Trophy, Activity, Swords, Code, ExternalLink, Calendar, Star, TrendingUp, CheckCircle } from 'lucide-react';
+import { Flame, Trophy, Activity, Swords, Code, ExternalLink, Calendar, Star, TrendingUp, CheckCircle, XCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 
@@ -87,9 +87,12 @@ const Heatmap = ({ heatmapData = {} }) => {
   );
 };
 
-const Dashboard = () => {
+const Dashboard = ({ setActiveTab, setSelectedPotd }) => {
   const { user } = useAuth();
   const [potd, setPotd] = useState(null);
+  const [potdHistory, setPotdHistory] = useState([]);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
   
   const stats = user?.stats || { globalRating: 0, dailyStreak: 0, problemsSolved: { easy: 0, medium: 0, hard: 0 } };
   const totalSolved = (stats.problemsSolved?.total) || ((stats.problemsSolved?.easy || 0) + (stats.problemsSolved?.medium || 0) + (stats.problemsSolved?.hard || 0));
@@ -118,6 +121,22 @@ const Dashboard = () => {
     };
     fetchPotd();
   }, []);
+
+  const fetchHistory = async () => {
+    setShowHistoryModal(true);
+    setHistoryLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('http://localhost:5000/api/problems/potd/history', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      setPotdHistory(data);
+    } catch (err) {
+      console.error("Failed to fetch history", err);
+    }
+    setHistoryLoading(false);
+  };
 
   const pieData = [
     { name: 'Easy', value: stats.problemsSolved?.easy || 0, color: 'var(--accent-success)' },
@@ -256,7 +275,12 @@ const Dashboard = () => {
           <div>
             <div className="flex justify-between items-center" style={{ marginBottom: '1.5rem' }}>
               <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Problem of the Day</h3>
-              <div title="Past POTDs" style={{ cursor: 'pointer', padding: '0.5rem', background: 'var(--bg-primary)', borderRadius: '50%' }} className="clay-recessed">
+              <div 
+                title="Past POTDs" 
+                onClick={fetchHistory}
+                style={{ cursor: 'pointer', padding: '0.5rem', background: 'var(--bg-primary)', borderRadius: '50%' }} 
+                className="clay-recessed hover:bg-gray-700 transition-colors"
+              >
                 <Calendar size={18} color="var(--accent-primary)" />
               </div>
             </div>
@@ -280,14 +304,29 @@ const Dashboard = () => {
             )}
           </div>
           
-          <button 
-            className="clay-btn btn-primary" 
-            style={{ width: '100%', fontSize: '1rem' }}
-            onClick={() => potd?.url && window.open(potd.url, '_blank')}
-            disabled={!potd}
-          >
-            Solve Now
-          </button>
+          {user?.solvedPotds?.includes(potd?._id) ? (
+            <button 
+              className="clay-btn btn-primary" 
+              style={{ width: '100%', fontSize: '1rem', opacity: 0.7, cursor: 'default' }}
+              disabled
+            >
+              <CheckCircle size={16} style={{ display: 'inline', marginRight: '8px' }} /> Already Solved
+            </button>
+          ) : (
+            <button 
+              className="clay-btn btn-primary" 
+              style={{ width: '100%', fontSize: '1rem' }}
+              onClick={() => {
+                if (potd) {
+                  setSelectedPotd(potd);
+                  setActiveTab('potd-solver');
+                }
+              }}
+              disabled={!potd}
+            >
+              Solve Now
+            </button>
+          )}
         </div>
 
       </div>
@@ -367,7 +406,64 @@ const Dashboard = () => {
           </div>
         </div>
       )}
-
+      
+      {/* History Modal */}
+      {showHistoryModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000
+        }}>
+          <div className="clay-card" style={{ width: '100%', maxWidth: '600px', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
+            <div className="flex justify-between items-center" style={{ marginBottom: '1.5rem' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)' }}>POTD History</h3>
+              <button onClick={() => setShowHistoryModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                <XCircle size={24} />
+              </button>
+            </div>
+            
+            <div style={{ overflowY: 'auto', flex: 1, paddingRight: '0.5rem' }}>
+              {historyLoading ? (
+                <div className="text-center py-4 text-gray-400">Loading history...</div>
+              ) : potdHistory.length === 0 ? (
+                <div className="text-center py-4 text-gray-400">No past problems found.</div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {potdHistory.map(p => {
+                    const isSolved = user?.solvedPotds?.includes(p._id);
+                    return (
+                      <div key={p._id} className="clay-recessed flex justify-between items-center p-4">
+                        <div>
+                          <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>{p.title}</div>
+                          <div className="flex gap-3 text-sm">
+                            <span style={{ color: p.difficulty === 'Easy' ? 'var(--accent-success)' : p.difficulty === 'Medium' ? 'var(--accent-warning)' : 'var(--accent-danger)' }}>{p.difficulty}</span>
+                            <span style={{ color: 'var(--text-muted)' }}>{new Date(p.potdDate).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                        {isSolved ? (
+                          <span style={{ color: 'var(--accent-success)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <CheckCircle size={16} /> Solved
+                          </span>
+                        ) : (
+                          <button 
+                            className="btn btn-primary text-sm px-4 py-1.5"
+                            onClick={() => {
+                              setSelectedPotd(p);
+                              setActiveTab('potd-solver');
+                              setShowHistoryModal(false);
+                            }}
+                          >
+                            Solve
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

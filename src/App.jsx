@@ -11,6 +11,7 @@ import Leaderboards from './views/Leaderboards';
 import Problems from './views/Problems';
 import Settings from './views/Settings';
 import Auth from './views/Auth';
+import PotdSolver from './views/PotdSolver';
 
 const App = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -19,6 +20,7 @@ const App = () => {
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [incomingChallenge, setIncomingChallenge] = useState(null);
   const [message, setMessage] = useState('');
+  const [selectedPotd, setSelectedPotd] = useState(null);
   const { user, loading } = useAuth();
   const socket = useSocket();
 
@@ -117,7 +119,7 @@ const App = () => {
             </div>
           )}
           
-          {activeTab === 'dashboard' && <Dashboard />}
+          {activeTab === 'dashboard' && <Dashboard setActiveTab={setActiveTab} setSelectedPotd={setSelectedPotd} />}
           {activeTab === 'duels' && <LiveDuels initialDuelData={activeDuelData} onlineUsers={onlineUsers} />}
           {activeTab === 'friends' && <Friends onlineUsers={onlineUsers} />}
           {activeTab === 'rooms' && <PrivateRooms />}
@@ -125,6 +127,7 @@ const App = () => {
           {activeTab === 'problems' && <Problems />}
           {activeTab === 'leaderboard' && <Leaderboards />}
           {activeTab === 'settings' && <Settings isDark={isDark} setIsDark={setIsDark} setActiveTab={setActiveTab} />}
+          {activeTab === 'potd-solver' && <PotdSolver potd={selectedPotd} setActiveTab={setActiveTab} />}
         </div>
       </main>
 

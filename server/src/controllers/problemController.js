@@ -1,5 +1,7 @@
 const Problem = require('../models/Problem');
-const axios = require('axios');
+const User = require('../models/User');
+const mockProblems = require('../data/mockProblems');
+const judgingService = require('../services/judgingService');
 
 const getProblems = async (req, res) => {
   try {
@@ -27,28 +29,19 @@ const getPOTD = async (req, res) => {
     const today = new Date();
     today.setHours(0,0,0,0);
 
-    // If no POTD or POTD is from previous days, try to fetch from LeetCode
+    // If no POTD or POTD is from previous days, rotate it
     if (!potd || !potd.potdDate || potd.potdDate < today) {
-       try {
-         const response = await axios.get('https://alfa-leetcode-api.onrender.com/daily');
-         if (response.data && response.data.questionLink) {
-           potd = {
-             title: response.data.questionTitle,
-             platform: 'leetcode',
-             difficulty: response.data.difficulty || 'Medium',
-             url: response.data.questionLink.startsWith('http') ? response.data.questionLink : `https://leetcode.com${response.data.questionLink}`,
-             tags: response.data.topicTags ? response.data.topicTags.map(t => t.name) : []
-           };
-         }
-       } catch (err) {
-         console.log("Failed to fetch LeetCode POTD:", err.message);
-       }
-    }
-    
-    // Fallback if API fails and DB has nothing
-    if (!potd || !potd.title) {
-      potd = await Problem.findOne();
-      if (potd && !potd.isPOTD) {
+      // Unmark old POTD
+      if (potd) {
+        potd.isPOTD = false;
+        await potd.save();
+      }
+      
+      // Pick a random problem to be the new POTD
+      const allProblems = await Problem.find({});
+      if (allProblems.length > 0) {
+        const randomIndex = Math.floor(Math.random() * allProblems.length);
+        potd = allProblems[randomIndex];
         potd.isPOTD = true;
         potd.potdDate = new Date();
         await potd.save();
@@ -61,22 +54,55 @@ const getPOTD = async (req, res) => {
   }
 };
 
+const getPOTDHistory = async (req, res) => {
+  try {
+    // Return all problems that have a potdDate, sorted newest first
+    const history = await Problem.find({ potdDate: { $ne: null } }).sort({ potdDate: -1 });
+    res.json(history);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const solvePOTD = async (req, res) => {
+  try {
+    const { problemId, code, language } = req.body;
+    const problem = await Problem.findById(problemId);
+    if (!problem) return res.status(404).json({ message: 'Problem not found' });
+    
+    // Execute against hidden tests
+    const result = await judgingService.executeCode(code, problem.hiddenTests, language);
+    
+    if (result.success) {
+      // Mark as solved for user
+      await User.findByIdAndUpdate(req.user._id, { $addToSet: { solvedPotds: problemId } });
+    }
+    
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 const seedProblems = async (req, res) => {
   try {
     const count = await Problem.countDocuments();
     if (count === 0) {
-      const sampleProblems = [
-        { title: 'Two Sum', platform: 'leetcode', difficulty: 'Easy', url: 'https://leetcode.com/problems/two-sum/', tags: ['Array', 'Hash Table'] },
-        { title: 'Add Two Numbers', platform: 'leetcode', difficulty: 'Medium', url: 'https://leetcode.com/problems/add-two-numbers/', tags: ['Linked List', 'Math'] },
-        { title: 'Watermelon', platform: 'codeforces', difficulty: 'Easy', url: 'https://codeforces.com/problemset/problem/4/A', tags: ['Math'] },
-        { title: 'Way Too Long Words', platform: 'codeforces', difficulty: 'Easy', url: 'https://codeforces.com/problemset/problem/71/A', tags: ['String'] },
-        { title: 'Longest Substring Without Repeating Characters', platform: 'leetcode', difficulty: 'Medium', url: 'https://leetcode.com/problems/longest-substring-without-repeating-characters/', tags: ['Hash Table', 'String', 'Sliding Window'] },
-        { title: 'Median of Two Sorted Arrays', platform: 'leetcode', difficulty: 'Hard', url: 'https://leetcode.com/problems/median-of-two-sorted-arrays/', tags: ['Array', 'Binary Search', 'Divide and Conquer'] },
-        { title: 'Theatre Square', platform: 'codeforces', difficulty: 'Easy', url: 'https://codeforces.com/problemset/problem/1/A', tags: ['Math'] },
-        { title: 'Regular Bracket Sequence', platform: 'codeforces', difficulty: 'Medium', url: 'https://codeforces.com/problemset/problem/26/B', tags: ['Greedy', 'String'] },
-      ];
-      await Problem.insertMany(sampleProblems);
-      return res.json({ message: 'Seeded problems database' });
+      // Map mock problems to Problem schema
+      const formattedProblems = mockProblems.map(p => ({
+        title: p.title || p.name,
+        platform: 'leetcode',
+        difficulty: p.difficulty,
+        url: p.url || `https://leetcode.com/problems/${p.id}`,
+        tags: [],
+        description: p.description || '',
+        functionSignature: p.functionSignature || '',
+        constraints: p.constraints || [],
+        sampleTests: p.sampleTests || [],
+        hiddenTests: p.hiddenTests || []
+      }));
+      await Problem.insertMany(formattedProblems);
+      return res.json({ message: 'Seeded mock problems database' });
     }
     res.json({ message: 'Database already has problems' });
   } catch (err) {
@@ -87,5 +113,7 @@ const seedProblems = async (req, res) => {
 module.exports = {
   getProblems,
   getPOTD,
+  getPOTDHistory,
+  solvePOTD,
   seedProblems
 };
