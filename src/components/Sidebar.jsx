@@ -17,9 +17,9 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
 
   return (
     <aside className="sidebar">
-      <div className="flex items-center gap-3" style={{ marginBottom: '2rem', padding: '0 1rem' }}>
-        <img src={logo} alt="DevArena Logo" style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '50%' }} />
-        <h1 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>DevArena</h1>
+      <div className="flex items-center gap-3" style={{ marginBottom: '1.25rem', padding: '0 0.5rem' }}>
+        <img src={logo} alt="DevArena Logo" style={{ width: '32px', height: '32px', objectFit: 'cover', borderRadius: '50%' }} />
+        <h1 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-primary)' }}>DevArena</h1>
       </div>
 
       <nav style={{ flex: 1 }}>
@@ -32,30 +32,30 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
               onClick={() => setActiveTab(tab.id)}
               style={{ textAlign: 'left' }}
             >
-              <Icon size={20} />
+              <Icon size={18} />
               <span>{tab.label}</span>
             </button>
           );
         })}
       </nav>
 
-      <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
         <button
           className={`nav-item w-full ${activeTab === 'settings' ? 'active' : ''}`}
           onClick={() => setActiveTab('settings')}
           style={{ textAlign: 'left', marginBottom: 0 }}
         >
-          <Settings size={20} />
+          <Settings size={18} />
           <span>Settings</span>
         </button>
 
         {user && (
-          <div className="clay-recessed" style={{ padding: '1.25rem' }}>
-            <div className="flex items-center gap-3" style={{ marginBottom: '0.5rem' }}>
-              <img src={user.profile?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=default"} alt="User Avatar" style={{ width: 32, height: 32, borderRadius: '50%' }} />
+          <div className="clay-recessed" style={{ padding: '0.75rem 1rem' }}>
+            <div className="flex items-center gap-3">
+              <img src={user.profile?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=default"} alt="User Avatar" style={{ width: 28, height: 28, borderRadius: '50%' }} />
               <div>
-                <div style={{ fontSize: '0.875rem', fontWeight: 600 }}>{user.username}</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Level {user.level || 1}</div>
+                <div style={{ fontSize: '0.8rem', fontWeight: 600 }}>{user.username}</div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Level {user.level || 1}</div>
               </div>
             </div>
           </div>
