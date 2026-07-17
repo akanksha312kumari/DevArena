@@ -12,6 +12,22 @@ const LiveDuelArena = ({ duel, socket, user, onLeave }) => {
   const [opponentStatus, setOpponentStatus] = useState('Coding...');
   const [matchResult, setMatchResult] = useState(null);
 
+  const getLanguageStub = (lang) => {
+    if (lang === 'javascript') return duel?.problem?.functionSignature || '// Write your solution here\nfunction solve() {\n  \n}\n';
+    if (lang === 'java') return 'public class Solution {\n    // Ensure your function matches the required signature\n    public static void solve() {\n        \n    }\n}\n';
+    if (lang === 'cpp') return '#include <iostream>\nusing namespace std;\n\n// Ensure your function matches the required signature\nvoid solve() {\n    \n}\n';
+    return '';
+  };
+
+  const handleLanguageChange = (e) => {
+    const newLang = e.target.value;
+    const currentStub = getLanguageStub(language);
+    if (code === currentStub || code.trim() === '') {
+      setCode(getLanguageStub(newLang));
+    }
+    setLanguage(newLang);
+  };
+
   useEffect(() => {
     if (duel && duel.status === 'active') {
       const remaining = Math.max(0, Math.floor((duel.endTime - Date.now()) / 1000));
@@ -89,7 +105,7 @@ const LiveDuelArena = ({ duel, socket, user, onLeave }) => {
     if (isRunning || isSubmitting || matchResult) return;
     setIsRunning(true);
     setConsoleOutput([{ type: 'info', text: 'Running against sample tests...' }]);
-    socket.emit('run_code', { duelId: duel.id, code: code });
+    socket.emit('run_code', { duelId: duel.id, code, language });
   };
 
   const handleSubmit = () => {
@@ -99,7 +115,8 @@ const LiveDuelArena = ({ duel, socket, user, onLeave }) => {
     
     socket.emit('verify_submission', {
       duelId: duel.id,
-      code: code
+      code,
+      language
     });
   };
 
@@ -247,27 +264,34 @@ const LiveDuelArena = ({ duel, socket, user, onLeave }) => {
             <div className="flex justify-between items-center" style={{ padding: '1rem', background: 'var(--bg-secondary)', borderBottom: '2px solid var(--bg-primary)' }}>
               <div className="flex items-center gap-3">
                 <div style={{ fontSize: '0.875rem', fontWeight: 600 }}>main.js</div>
-                <select className="clay-input" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', height: 'auto', borderRadius: '4px' }} value={language} onChange={(e) => setLanguage(e.target.value)}>
-                  <option value="javascript">JavaScript</option>
-                  <option value="python" disabled>Python (Coming soon)</option>
-                </select>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 items-center">
+                <select 
+                  value={language}
+                  onChange={handleLanguageChange}
+                  className="clay-input"
+                  style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem', marginRight: '0.5rem' }}
+                  disabled={isRunning || isSubmitting || !!matchResult}
+                >
+                  <option value="javascript">JavaScript</option>
+                  <option value="java">Java</option>
+                  <option value="cpp">C++</option>
+                </select>
                 <button 
-                  className="clay-btn btn-outline" 
-                  style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }} 
+                  className="clay-btn btn-outline flex items-center gap-2" 
+                  style={{ padding: '0.35rem 0.75rem', fontSize: '0.875rem' }} 
                   onClick={handleRunCode}
                   disabled={isRunning || isSubmitting || matchResult || remainingTime <= 0}
                 >
-                  {isRunning ? 'Running...' : 'Run Code'}
+                  <Play size={16} /> {isRunning ? 'Running...' : 'Run Code'}
                 </button>
                 <button 
-                  className="clay-btn btn-primary" 
-                  style={{ padding: '0.5rem 1.5rem', fontSize: '0.875rem' }} 
+                  className="clay-btn btn-primary flex items-center gap-2" 
+                  style={{ padding: '0.35rem 0.75rem', fontSize: '0.875rem' }} 
                   onClick={handleSubmit}
                   disabled={isSubmitting || isRunning || matchResult || remainingTime <= 0}
                 >
-                  {isSubmitting ? 'Evaluating...' : 'Submit Code'}
+                  <CheckCircle size={16} /> {isSubmitting ? 'Evaluating...' : 'Submit'}
                 </button>
               </div>
             </div>

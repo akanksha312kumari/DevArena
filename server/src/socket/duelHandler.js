@@ -236,7 +236,7 @@ module.exports = (io, socket, connectedUsers) => {
   });
 
   socket.on('run_code', async (data) => {
-    const { duelId, code } = data;
+    const { duelId, code, language = 'javascript' } = data;
     const duel = activeDuels.get(duelId);
     const logMsg = `[DEBUG] run_code called with duelId: ${duelId}. duel exists: ${!!duel}, status: ${duel?.status}\n`;
     require('fs').appendFileSync('debug_duel.log', logMsg);
@@ -248,12 +248,12 @@ module.exports = (io, socket, connectedUsers) => {
     }
 
     // Run against sample tests
-    const result = await judgingService.executeJavascript(code, duel.problem.sampleTests);
+    const result = await judgingService.executeCode(code, duel.problem.sampleTests, language);
     socket.emit('run_code_result', result);
   });
 
   socket.on('verify_submission', async (data) => {
-    const { duelId, code } = data;
+    const { duelId, code, language = 'javascript' } = data;
     const userId = connectedUsers.get(socket.id);
     const duel = activeDuels.get(duelId);
     
@@ -271,7 +271,7 @@ module.exports = (io, socket, connectedUsers) => {
     io.to(duelId).emit('player_status_update', { userId, status: 'Evaluating...' });
     
     // Run against hidden tests
-    const result = await judgingService.executeJavascript(code, duel.problem.hiddenTests);
+    const result = await judgingService.executeCode(code, duel.problem.hiddenTests, language);
     
     if (result.passed > duel.players[playerIndex].maxPassed) {
       duel.players[playerIndex].maxPassed = result.passed;

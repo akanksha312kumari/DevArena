@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import LiveDuelArena from './LiveDuelArena';
 
-const LiveDuels = ({ initialDuelData }) => {
+const LiveDuels = ({ initialDuelData, onlineUsers = [] }) => {
   const { user } = useAuth();
   const socket = useSocket();
   const [activeDuel, setActiveDuel] = useState(initialDuelData || null);
@@ -16,7 +16,6 @@ const LiveDuels = ({ initialDuelData }) => {
   const [duelHistory, setDuelHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
-  const [onlineUsers, setOnlineUsers] = useState([]);
 
   // Fetch duel history from backend
   const fetchDuelHistory = async () => {
@@ -54,17 +53,6 @@ const LiveDuels = ({ initialDuelData }) => {
 
   useEffect(() => {
     if (!socket) return;
-
-    socket.on('online_users_update', (users) => {
-      const realUsers = users.filter(u => u._id !== user._id);
-      const dummyUsers = [
-        { _id: 'dummy1', username: 'AlexChen_Dev', stats: { rating: 1250 }, profile: { avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=AlexChen' } },
-        { _id: 'dummy2', username: 'SarahCod3s', stats: { rating: 1540 }, profile: { avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah' } },
-        { _id: 'dummy3', username: 'tech_guru99', stats: { rating: 1890 }, profile: { avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=guru' } },
-        { _id: 'dummy4', username: 'byte_ninja', stats: { rating: 1100 }, profile: { avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ninja' } }
-      ];
-      setOnlineUsers([...realUsers, ...dummyUsers]); // Add dummy users for UI purposes
-    });
 
     socket.on('duel_state_update', (data) => {
       setActiveDuel(data);
@@ -114,7 +102,6 @@ const LiveDuels = ({ initialDuelData }) => {
     });
 
     return () => {
-      socket.off('online_users_update');
       socket.off('duel_state_update');
       socket.off('match_found');
       socket.off('duel_countdown');
@@ -175,7 +162,7 @@ const LiveDuels = ({ initialDuelData }) => {
 
   // Lobby View
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 300px', gap: '2rem' }}>
+    <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr auto', gap: '2rem' }}>
       {/* Left Column: Duels */}
       <div>
         <header style={{ marginBottom: '1.5rem' }}>
@@ -299,12 +286,12 @@ const LiveDuels = ({ initialDuelData }) => {
 
       {/* Right Column: Global Active Members */}
       <div>
-        <h3 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <h3 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}>
           <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--accent-success)', display: 'inline-block', boxShadow: 'inset 1px 1px 2px rgba(0,0,0,0.2)' }}></span>
-          Global Active Members
+          Online
         </h3>
         
-        <div className="clay-card" style={{ padding: '1rem', display: 'flex', flexWrap: 'wrap', gap: '0.75rem', maxHeight: '500px', overflowY: 'auto' }}>
+        <div className="clay-card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', maxHeight: '500px', overflowY: 'auto' }}>
           {onlineUsers.length === 0 ? (
             <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.75rem', padding: '1rem 0', width: '100%' }}>
               No other members online.

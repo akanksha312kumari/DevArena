@@ -3,7 +3,7 @@ import { Users, Search, UserPlus, Swords } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 
-const Friends = () => {
+const Friends = ({ onlineUsers = [] }) => {
   const { user } = useAuth();
   const socket = useSocket();
   const [friends, setFriends] = useState([]);
@@ -20,50 +20,11 @@ const Friends = () => {
     problemId: '',
     timeLimit: 30
   });
-  
-  // Incoming Challenge Modal State
-  const [incomingChallenge, setIncomingChallenge] = useState(null);
 
   useEffect(() => {
     fetchFriends();
     fetchFriendRequests();
-    
-    if (socket) {
-      const onChallengeReceived = (data) => {
-        setIncomingChallenge(data);
-      };
-
-      const onChallengeRejected = (data) => {
-        setMessage(data.message);
-        setTimeout(() => setMessage(''), 3000);
-      };
-
-      socket.on('challenge_received', onChallengeReceived);
-      socket.on('challenge_rejected', onChallengeRejected);
-      
-      return () => {
-        socket.off('challenge_received', onChallengeReceived);
-        socket.off('challenge_rejected', onChallengeRejected);
-      };
-    }
   }, [socket]);
-
-  const acceptIncomingChallenge = () => {
-    if (!incomingChallenge) return;
-    socket.emit('accept_challenge', {
-      senderId: incomingChallenge.senderId,
-      challengeId: incomingChallenge.challengeId,
-      problem: incomingChallenge.problem,
-      timeLimit: incomingChallenge.timeLimit
-    });
-    setIncomingChallenge(null);
-  };
-
-  const rejectIncomingChallenge = () => {
-    if (!incomingChallenge) return;
-    socket.emit('reject_challenge', { senderId: incomingChallenge.senderId });
-    setIncomingChallenge(null);
-  };
 
   const fetchFriends = async () => {
     try {
@@ -263,7 +224,12 @@ const Friends = () => {
           {friends.map(f => (
             <div key={f._id} className="card flex flex-col gap-3" style={{ padding: '0.75rem 1rem' }}>
               <div className="flex items-center gap-3">
-                <img src={f.profile?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=default"} alt="Avatar" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
+                <div style={{ position: 'relative' }}>
+                  <img src={f.profile?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=default"} alt="Avatar" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
+                  {onlineUsers.some(u => u._id === f._id) && (
+                    <span style={{ position: 'absolute', bottom: 0, right: 0, width: 10, height: 10, borderRadius: '50%', background: 'var(--accent-success)', border: '2px solid var(--bg-primary)' }}></span>
+                  )}
+                </div>
                 <div>
                   <h4 style={{ fontWeight: 600, fontSize: '0.95rem' }}>{f.username}</h4>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
@@ -334,30 +300,6 @@ const Friends = () => {
         </div>
       )}
 
-      {/* Incoming Challenge Modal */}
-      {incomingChallenge && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1050
-        }}>
-          <div className="card text-center" style={{ width: '100%', maxWidth: '400px', animation: 'fadeIn 0.3s' }}>
-            <div style={{ padding: '1rem', background: 'rgba(217, 119, 6, 0.1)', borderRadius: '50%', marginBottom: '1rem', color: 'var(--accent-primary)', display: 'inline-block' }}>
-              <Swords size={32} />
-            </div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>Incoming Duel Challenge!</h3>
-            <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-              You have been challenged to solve <strong>{incomingChallenge.problem?.title || 'a problem'}</strong> on <strong>{incomingChallenge.problem?.platform}</strong>.
-            </p>
-            <div style={{ padding: '0.5rem', background: 'var(--bg-secondary)', borderRadius: '8px', marginBottom: '1.5rem', fontSize: '0.875rem' }}>
-              Time Limit: <strong>{incomingChallenge.timeLimit} Minutes</strong>
-            </div>
-            <div className="flex gap-4 justify-center">
-              <button className="clay-btn btn-outline" onClick={rejectIncomingChallenge} style={{ flex: 1, borderColor: 'var(--accent-danger)', color: 'var(--accent-danger)' }}>Decline</button>
-              <button className="clay-btn btn-primary" onClick={acceptIncomingChallenge} style={{ flex: 1 }}>Accept Duel</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
