@@ -109,7 +109,7 @@ const Dashboard = ({ setActiveTab, setSelectedPotd }) => {
     const fetchPotd = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('http://localhost:5000/api/problems/potd', {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/problems/potd`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();
@@ -128,7 +128,7 @@ const Dashboard = ({ setActiveTab, setSelectedPotd }) => {
     setHistoryLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5000/api/problems/potd/history', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/problems/potd/history`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -338,7 +338,7 @@ const Dashboard = ({ setActiveTab, setSelectedPotd }) => {
               onClick={async () => {
                 try {
                   const token = localStorage.getItem('token');
-                  const res = await fetch('http://localhost:5000/api/problems/potd', {
+                  const res = await fetch(`${import.meta.env.VITE_API_URL}/problems/potd`, {
                     headers: { Authorization: `Bearer ${token}` }
                   });
                   const data = await res.json();
@@ -520,7 +520,7 @@ const Dashboard = ({ setActiveTab, setSelectedPotd }) => {
                             onClick={async () => {
                               try {
                                 const token = localStorage.getItem('token');
-                                const res = await fetch(`http://localhost:5000/api/problems/${p._id}`, {
+                                const res = await fetch(`${import.meta.env.VITE_API_URL}/problems/${p._id}`, {
                                   headers: { Authorization: `Bearer ${token}` }
                                 });
                                 const data = await res.json();
