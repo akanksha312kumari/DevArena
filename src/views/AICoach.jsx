@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
 import { Bot, Send, Sparkles } from 'lucide-react';
 
@@ -12,9 +12,29 @@ const radarData = [
 ];
 
 const AICoach = () => {
-  const [messages, setMessages] = useState([
-    { role: 'assistant', content: "Hello! I'm your DevArena AI Coach. Based on your stats, you're crushing Trees and Graphs, but Dynamic Programming could use some work. How can I help you today?" }
-  ]);
+  const [messages, setMessages] = useState(() => {
+    const saved = localStorage.getItem('aiCoachMessages');
+    const timestamp = localStorage.getItem('aiCoachTimestamp');
+    if (saved && timestamp && (Date.now() - parseInt(timestamp) < 60 * 60 * 1000)) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return [
+      { role: 'assistant', content: "Hello! I'm your DevArena AI Coach. Based on your stats, you're crushing Trees and Graphs, but Dynamic Programming could use some work. How can I help you today?" }
+    ];
+  });
+  
+  useEffect(() => {
+    localStorage.setItem('aiCoachMessages', JSON.stringify(messages));
+    localStorage.setItem('aiCoachTimestamp', Date.now().toString());
+  }, [messages]);
+  
+  const chatEndRef = useRef(null);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
   const [loading, setLoading] = useState(false);
   const [input, setInput] = useState('');
 
@@ -52,7 +72,7 @@ const AICoach = () => {
   };
 
   return (
-    <div className="dashboard-grid" style={{ height: '100%', gridTemplateColumns: '1fr 2fr' }}>
+    <div className="dashboard-grid" style={{ height: 'calc(100vh - 4rem)', gridTemplateColumns: '1fr 2fr' }}>
       {/* Weakness Detection Panel */}
       <div className="card flex flex-col h-full">
         <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1rem' }}>Skill Analysis</h3>
@@ -82,7 +102,7 @@ const AICoach = () => {
           <h3 style={{ fontWeight: 600 }}>DevArena Coach</h3>
         </header>
 
-        <div style={{ flex: 1, padding: '1rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{ flex: 1, minHeight: 0, padding: '1rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {messages.map((msg, i) => (
             <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div style={{
@@ -96,6 +116,7 @@ const AICoach = () => {
               </div>
             </div>
           ))}
+          <div ref={chatEndRef} />
         </div>
 
         <div style={{ padding: '0.75rem 1rem', borderTop: '1px solid var(--card-border)' }}>

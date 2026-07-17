@@ -493,18 +493,18 @@ const Dashboard = ({ setActiveTab, setSelectedPotd }) => {
             
             <div style={{ overflowY: 'auto', flex: 1, paddingRight: '0.5rem' }}>
               {historyLoading ? (
-                <div className="text-center py-4 text-gray-400">Loading history...</div>
+                <div style={{ textAlign: 'center', padding: '1rem 0', color: 'var(--text-muted)' }}>Loading history...</div>
               ) : potdHistory.length === 0 ? (
-                <div className="text-center py-4 text-gray-400">No past problems found.</div>
+                <div style={{ textAlign: 'center', padding: '1rem 0', color: 'var(--text-muted)' }}>No past problems found.</div>
               ) : (
-                <div className="flex flex-col gap-3">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   {potdHistory.map(p => {
                     const isSolved = user?.solvedPotds?.includes(p._id);
                     return (
-                      <div key={p._id} className="clay-recessed flex justify-between items-center p-4">
+                      <div key={p._id} className="clay-recessed" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem' }}>
                         <div>
                           <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>{p.title}</div>
-                          <div className="flex gap-3 text-sm">
+                          <div style={{ display: 'flex', gap: '0.75rem', fontSize: '0.875rem' }}>
                             <span style={{ color: p.difficulty === 'Easy' ? 'var(--accent-success)' : p.difficulty === 'Medium' ? 'var(--accent-warning)' : 'var(--accent-danger)' }}>{p.difficulty}</span>
                             <span style={{ color: 'var(--text-muted)' }}>{new Date(p.potdDate).toLocaleDateString()}</span>
                           </div>
