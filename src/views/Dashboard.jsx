@@ -93,6 +93,7 @@ const Dashboard = ({ setActiveTab, setSelectedPotd }) => {
   const [potdHistory, setPotdHistory] = useState([]);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [showAllSubmissions, setShowAllSubmissions] = useState(false);
   
   const stats = user?.stats || { globalRating: 0, dailyStreak: 0, problemsSolved: { easy: 0, medium: 0, hard: 0 } };
   const totalSolved = (stats.problemsSolved?.total) || ((stats.problemsSolved?.easy || 0) + (stats.problemsSolved?.medium || 0) + (stats.problemsSolved?.hard || 0));
@@ -421,7 +422,7 @@ const Dashboard = ({ setActiveTab, setSelectedPotd }) => {
           {recentSubmissions.length === 0 ? (
             <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: 600 }}>No recent submissions. Sync your platforms to view activity!</div>
           ) : (
-            recentSubmissions.map((sub, i) => (
+            (showAllSubmissions ? recentSubmissions : recentSubmissions.slice(0, 5)).map((sub, i) => (
               <div key={i} className="clay-recessed flex items-center justify-between" style={{ padding: '1rem 1.5rem' }}>
                 <div className="flex items-center gap-4">
                   <CheckCircle size={20} color="var(--accent-success)" />
@@ -439,6 +440,15 @@ const Dashboard = ({ setActiveTab, setSelectedPotd }) => {
             ))
           )}
         </div>
+        {recentSubmissions.length > 5 && (
+          <button 
+            className="clay-btn w-full" 
+            style={{ marginTop: '1rem', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+            onClick={() => setShowAllSubmissions(!showAllSubmissions)}
+          >
+            {showAllSubmissions ? 'Show Less' : 'Show More'}
+          </button>
+        )}
       </div>
 
       {/* Platform Breakdowns */}

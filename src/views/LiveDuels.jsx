@@ -16,6 +16,7 @@ const LiveDuels = ({ initialDuelData, onlineUsers = [] }) => {
   const [duelHistory, setDuelHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [showAllHistory, setShowAllHistory] = useState(false);
 
   // Fetch duel history from backend
   const fetchDuelHistory = async () => {
@@ -217,7 +218,7 @@ const LiveDuels = ({ initialDuelData, onlineUsers = [] }) => {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {duelHistory.map((duel, i) => {
+            {(showAllHistory ? duelHistory : duelHistory.slice(0, 5)).map((duel, i) => {
               const isWin = duel.winner && duel.winner._id === user._id;
               const isDraw = !duel.winner;
               const opponents = duel.players?.filter(p => p._id !== user._id) || [];
@@ -250,7 +251,6 @@ const LiveDuels = ({ initialDuelData, onlineUsers = [] }) => {
                       <span><Clock size={11} style={{ display: 'inline', verticalAlign: 'middle' }} /> {durationMins} min</span>
                     </div>
                   </div>
-
                   {/* Opponent */}
                   <div style={{ textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)', flexShrink: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
@@ -279,6 +279,16 @@ const LiveDuels = ({ initialDuelData, onlineUsers = [] }) => {
                 </div>
               );
             })}
+            
+            {duelHistory.length > 5 && (
+              <button 
+                className="clay-btn w-full" 
+                style={{ marginTop: '1rem', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                onClick={() => setShowAllHistory(!showAllHistory)}
+              >
+                {showAllHistory ? 'Show Less' : 'Show More'}
+              </button>
+            )}
           </div>
         )}
       </div>
