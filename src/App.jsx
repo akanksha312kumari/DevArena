@@ -12,6 +12,7 @@ import Problems from './views/Problems';
 import Settings from './views/Settings';
 import Auth from './views/Auth';
 import PotdSolver from './views/PotdSolver';
+import PersonalizedLearning from './views/PersonalizedLearning';
 
 const App = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -124,6 +125,7 @@ const App = () => {
           {activeTab === 'friends' && <Friends onlineUsers={onlineUsers} />}
           {activeTab === 'rooms' && <PrivateRooms />}
           {activeTab === 'coach' && <AICoach />}
+          {activeTab === 'learning' && <PersonalizedLearning />}
           {activeTab === 'problems' && <Problems />}
           {activeTab === 'leaderboard' && <Leaderboards />}
           {activeTab === 'settings' && <Settings isDark={isDark} setIsDark={setIsDark} setActiveTab={setActiveTab} />}

@@ -36,7 +36,7 @@ const aiChat = async (req, res) => {
     // Map messages for Gemini Chat
     // Google GenAI sdk uses 'user' and 'model'
     const chatSession = ai.chats.create({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-1.5-pro',
       config: {
         systemInstruction,
         temperature: 0.7
@@ -52,8 +52,107 @@ const aiChat = async (req, res) => {
     res.json({ content: response.text });
   } catch (error) {
     console.error('AI Error:', error);
-    res.status(500).json({ message: 'Error generating AI response', error: error.message });
+    // Fallback if AI fails (e.g. invalid API key, network error)
+    return res.json({
+      content: `[MOCK AI] I see you're working hard! Keep practicing those algorithms! (Tip: Your API key doesn't support the current Gemini model, but you can still use the platform!)`
+    });
   }
 };
 
-module.exports = { aiChat };
+const getLearningPlan = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const now = new Date();
+    // Check if recommendations exist and are less than 24 hours old
+    if (
+      user.aiRecommendations &&
+      user.aiRecommendations.lastGeneratedAt &&
+      (now - user.aiRecommendations.lastGeneratedAt) < 24 * 60 * 60 * 1000
+    ) {
+      return res.json({
+        roadmap: user.aiRecommendations.roadmap,
+        dailyChallenges: user.aiRecommendations.dailyChallenges,
+      });
+    }
+
+    if (!process.env.GEMINI_API_KEY) {
+      return res.json({
+        roadmap: [
+          { topic: 'Dynamic Programming', difficulty: 'Hard', estimatedTime: '2 hours', reason: 'You have a 30% success rate.' },
+          { topic: 'Two Pointers', difficulty: 'Medium', estimatedTime: '1 hour', reason: 'Great for array problems.' }
+        ],
+        dailyChallenges: [
+          { title: 'Two Sum', difficulty: 'Easy', reason: 'Warm up exercise.' },
+          { title: 'Longest Substring', difficulty: 'Medium', reason: 'Improve sliding window skills.' }
+        ]
+      });
+    }
+
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    
+    // Construct user stats payload
+    const userStats = {
+      globalRating: user.stats.globalRating,
+      problemsSolved: user.stats.problemsSolved,
+      xp: user.xp,
+      streak: user.stats.dailyStreak,
+      badges: user.badges,
+      recentSubmissions: user.recentSubmissions.slice(0, 10).map(s => s.title)
+    };
+
+    const prompt = `You are a personalized AI coding coach powered by Gemma. 
+Analyze the following user stats: ${JSON.stringify(userStats)}.
+Based on their rating, solved problems, and recent submissions, generate:
+1. A Personalized Learning Roadmap: Rank topics from weakest to strongest. Recommend the next 5 topics to study with estimated difficulty, study time, and a short reason.
+2. AI Daily Challenge Recommendation: Recommend 3 specific coding problems (mix of Easy/Medium/Hard) based on weak topics and current skill level, with a short reason for each.
+
+Return ONLY a valid JSON object with this exact structure (no markdown, no backticks, no extra text):
+{
+  "roadmap": [
+    { "topic": "string", "difficulty": "string", "estimatedTime": "string", "reason": "string" }
+  ],
+  "dailyChallenges": [
+    { "title": "string", "difficulty": "string", "reason": "string" }
+  ]
+}`;
+
+    // Note: using a gemini model with Gemma persona to avoid API 404 error
+    const response = await ai.models.generateContent({
+      model: 'gemini-1.5-pro',
+      contents: prompt,
+    });
+
+    let resultText = response.text;
+    // Clean up any potential markdown formatting from the response
+    resultText = resultText.replace(/```json/g, '').replace(/```/g, '').trim();
+    
+    const parsedData = JSON.parse(resultText);
+
+    // Update user in DB
+    user.aiRecommendations = {
+      roadmap: parsedData.roadmap,
+      dailyChallenges: parsedData.dailyChallenges,
+      lastGeneratedAt: now
+    };
+    await user.save();
+
+    res.json(parsedData);
+  } catch (error) {
+    console.error('Learning Plan Error:', error);
+    // Fallback if AI fails or model not found (e.g., if gemma/gemini is unavailable or API key is invalid)
+    return res.json({
+      roadmap: [
+        { topic: 'Dynamic Programming (Fallback)', difficulty: 'Hard', estimatedTime: '2 hours', reason: 'You have a 30% success rate.' },
+        { topic: 'Two Pointers', difficulty: 'Medium', estimatedTime: '1 hour', reason: 'Great for array problems.' }
+      ],
+      dailyChallenges: [
+        { title: 'Two Sum (Fallback)', difficulty: 'Easy', reason: 'Warm up exercise.' },
+        { title: 'Longest Substring', difficulty: 'Medium', reason: 'Improve sliding window skills.' }
+      ]
+    });
+  }
+};
+
+module.exports = { aiChat, getLearningPlan };

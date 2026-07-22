@@ -177,6 +177,24 @@ const userSchema = new mongoose.Schema(
       },
     ],
     lastActivityDate: { type: Date, default: null },
+    aiRecommendations: {
+      roadmap: [
+        {
+          topic: String,
+          difficulty: String,
+          estimatedTime: String,
+          reason: String,
+        },
+      ],
+      dailyChallenges: [
+        {
+          title: String,
+          difficulty: String,
+          reason: String,
+        },
+      ],
+      lastGeneratedAt: { type: Date, default: null },
+    },
   },
   { timestamps: true }
 );

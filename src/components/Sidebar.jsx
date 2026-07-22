@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Swords, Users, Bot, Trophy, Code2, Settings, Hash, Target } from 'lucide-react';
+import { LayoutDashboard, Swords, Users, Bot, Trophy, Code2, Settings, Hash, Target, BookOpen } from 'lucide-react';
 import logo from '../assets/logoooo.png';
 import { useAuth } from '../context/AuthContext';
 
@@ -11,6 +11,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
     { id: 'friends', label: 'Friends', icon: Users },
     { id: 'rooms', label: 'Private Rooms', icon: Hash },
     { id: 'coach', label: 'AI Coach', icon: Bot },
+    { id: 'learning', label: 'Learning Path', icon: BookOpen },
     { id: 'problems', label: 'Problems', icon: Target },
     { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
   ];
