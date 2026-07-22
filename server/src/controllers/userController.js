@@ -121,6 +121,23 @@ const rejectFriendRequest = async (req, res) => {
   }
 };
 
+const getUserProfile = async (req, res) => {
+  try {
+    const targetUserId = req.params.id;
+    const user = await User.findById(targetUserId).select(
+      '-password -email -__v'
+    );
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   updateProfile,
   searchUsers,
@@ -129,4 +146,5 @@ module.exports = {
   getFriendRequests,
   acceptFriendRequest,
   rejectFriendRequest,
+  getUserProfile,
 };

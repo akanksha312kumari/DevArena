@@ -78,6 +78,15 @@ const LiveDuelArena = ({ duel, socket, user, onLeave }) => {
       setMatchResult(data);
     };
 
+    const handleDuelForfeited = (data) => {
+      setIsSubmitting(false);
+      setIsRunning(false);
+      setMatchResult({
+        winner: data.winner,
+        reason: data.reason
+      });
+    };
+
     const handlePlayerStatusUpdate = (data) => {
       // Find the player in duel state and update their status (we mutate the local react state by forcing a re-render or updating parent state)
       // Since duel state comes from props, ideally we'd have a local copy of players, but for now we'll just track opponentStatus for 1v1.
@@ -90,6 +99,7 @@ const LiveDuelArena = ({ duel, socket, user, onLeave }) => {
     socket.on('submission_failed', handleSubFailed);
     socket.on('run_code_result', handleRunCodeResult);
     socket.on('duel_finished', handleDuelFinished);
+    socket.on('duel_forfeited', handleDuelForfeited);
     socket.on('player_status_update', handlePlayerStatusUpdate);
 
     return () => {
@@ -97,6 +107,7 @@ const LiveDuelArena = ({ duel, socket, user, onLeave }) => {
       socket.off('submission_failed', handleSubFailed);
       socket.off('run_code_result', handleRunCodeResult);
       socket.off('duel_finished', handleDuelFinished);
+      socket.off('duel_forfeited', handleDuelForfeited);
       socket.off('player_status_update', handlePlayerStatusUpdate);
     };
   }, [socket, duel]);
@@ -118,6 +129,14 @@ const LiveDuelArena = ({ duel, socket, user, onLeave }) => {
       code,
       language
     });
+  };
+
+  const handleLeaveClick = () => {
+    if (window.confirm('Are you sure you want to leave? This will forfeit the match.')) {
+      socket.emit('leave_duel', duel.id);
+      alert('You left the duel. The match has been forfeited.');
+      onLeave();
+    }
   };
 
   const formatTime = (seconds) => {
@@ -185,7 +204,7 @@ const LiveDuelArena = ({ duel, socket, user, onLeave }) => {
               </span>
             </div>
           </div>
-          <button className="clay-btn btn-outline" onClick={onLeave}>Leave</button>
+          <button className="clay-btn btn-outline" onClick={handleLeaveClick}>Leave</button>
         </div>
       </header>
 
@@ -339,7 +358,13 @@ const LiveDuelArena = ({ duel, socket, user, onLeave }) => {
           background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
         }}>
           <div className="clay-card" style={{ width: '100%', maxWidth: '400px', textAlign: 'center', padding: '2rem' }}>
-            {matchResult.winner === user._id ? (
+            {matchResult.reason === 'Opponent Forfeited' ? (
+              <>
+                <Trophy size={48} color="var(--accent-success)" style={{ margin: '0 auto 1rem' }} />
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--accent-success)', marginBottom: '0.5rem' }}>Opponent left the duel.</h2>
+                <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '1.25rem' }}>🏆 You won by default.</p>
+              </>
+            ) : matchResult.winner === user._id ? (
               <>
                 <Trophy size={48} color="var(--accent-success)" style={{ margin: '0 auto 1rem' }} />
                 <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--accent-success)', marginBottom: '0.5rem' }}>Victory!</h2>

@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Trophy, Code2, Flame, Star } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import UserProfileModal from '../components/UserProfileModal';
 
 const Leaderboards = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('global');
   const [leaderboard, setLeaderboard] = useState([]);
   const [sortBy, setSortBy] = useState('xp');
+  const [selectedUserId, setSelectedUserId] = useState(null);
 
   useEffect(() => {
     fetchLeaderboard();
@@ -92,8 +94,8 @@ const Leaderboards = () => {
                   </td>
                   <td style={{ padding: '0.75rem 1rem' }}>
                     <div className="flex items-center gap-3">
-                      <img src={u.profile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`} alt={u.username} style={{ width: 28, height: 28, borderRadius: '50%' }} />
-                      <span style={{ fontWeight: isCurrentUser ? 700 : 500 }}>{u.username}</span>
+                      <img src={u.profile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`} alt={u.username} style={{ width: 28, height: 28, borderRadius: '50%', cursor: 'pointer' }} onClick={() => setSelectedUserId(u._id)} />
+                      <span style={{ fontWeight: isCurrentUser ? 700 : 500, cursor: 'pointer' }} onClick={() => setSelectedUserId(u._id)}>{u.username}</span>
                       {u.badges?.length > 0 && <Star size={14} color="var(--accent-primary)" />}
                     </div>
                   </td>
@@ -112,6 +114,8 @@ const Leaderboards = () => {
           </tbody>
         </table>
       </div>
+
+      {selectedUserId && <UserProfileModal userId={selectedUserId} onClose={() => setSelectedUserId(null)} />}
     </div>
   );
 };

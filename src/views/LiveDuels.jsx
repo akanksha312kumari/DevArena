@@ -3,6 +3,7 @@ import { Swords, Clock, AlertTriangle, CheckCircle, Code2, Trophy, XCircle, Minu
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import LiveDuelArena from './LiveDuelArena';
+import UserProfileModal from '../components/UserProfileModal';
 
 const LiveDuels = ({ initialDuelData, onlineUsers = [] }) => {
   const { user } = useAuth();
@@ -12,7 +13,9 @@ const LiveDuels = ({ initialDuelData, onlineUsers = [] }) => {
   const [countdown, setCountdown] = useState(5);
   const [remainingTime, setRemainingTime] = useState(0);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [hasInitializedDuel, setHasInitializedDuel] = useState(false);
   const [claimantId, setClaimantId] = useState(null);
+  const [selectedUserId, setSelectedUserId] = useState(null);
   const [duelHistory, setDuelHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
@@ -42,15 +45,14 @@ const LiveDuels = ({ initialDuelData, onlineUsers = [] }) => {
   }, []);
   
   useEffect(() => {
-    if (initialDuelData) {
+    if (initialDuelData && !hasInitializedDuel) {
       if (socket) socket.emit('join_duel', initialDuelData.id);
       
-      if (!activeDuel || activeDuel.id !== initialDuelData.id) {
-        setActiveDuel(initialDuelData);
-        setMatchStatus('starting');
-      }
+      setActiveDuel(initialDuelData);
+      setMatchStatus('starting');
+      setHasInitializedDuel(true);
     }
-  }, [initialDuelData, socket]);
+  }, [initialDuelData, socket, hasInitializedDuel]);
 
   useEffect(() => {
     if (!socket) return;
@@ -259,8 +261,8 @@ const LiveDuels = ({ initialDuelData, onlineUsers = [] }) => {
                       ) : (
                         <>
                           <img src={opponent?.profile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${opponent?.username}`}
-                            alt={opponent?.username} style={{ width: 24, height: 24, borderRadius: '50%' }} />
-                          <span>{opponent?.username || 'Unknown'}</span>
+                            alt={opponent?.username} style={{ width: 24, height: 24, borderRadius: '50%', cursor: 'pointer' }} onClick={() => setSelectedUserId(opponent?._id)} />
+                          <span style={{ cursor: 'pointer' }} onClick={() => setSelectedUserId(opponent?._id)}>{opponent?.username || 'Unknown'}</span>
                         </>
                       )}
                     </div>
@@ -310,10 +312,11 @@ const LiveDuels = ({ initialDuelData, onlineUsers = [] }) => {
             onlineUsers.map(u => (
               <div 
                 key={u._id} 
-                title={`${u.username} (Rating: ${u.stats?.rating || 0})`}
+                title={`${u.username} (Rating: ${u.stats?.globalRating || 0})`}
                 style={{ position: 'relative', cursor: 'pointer', transition: 'transform 0.2s ease' }}
                 onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
                 onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                onClick={() => setSelectedUserId(u._id)}
               >
                 <img 
                   src={u.profile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`} 
@@ -326,6 +329,8 @@ const LiveDuels = ({ initialDuelData, onlineUsers = [] }) => {
           )}
         </div>
       </div>
+
+      {selectedUserId && <UserProfileModal userId={selectedUserId} onClose={() => setSelectedUserId(null)} />}
     </div>
   );
 };

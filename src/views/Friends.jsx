@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Users, Search, UserPlus, Swords } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
+import UserProfileModal from '../components/UserProfileModal';
 
 const Friends = ({ onlineUsers = [] }) => {
   const { user } = useAuth();
@@ -11,6 +12,7 @@ const Friends = ({ onlineUsers = [] }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [message, setMessage] = useState('');
+  const [selectedUserId, setSelectedUserId] = useState(null);
 
   // Challenge Modal State
   const [showChallengeModal, setShowChallengeModal] = useState(false);
@@ -183,8 +185,8 @@ const Friends = ({ onlineUsers = [] }) => {
             <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))' }}>
               {searchResults.map(u => (
                 <div key={u._id} className="clay-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '1rem' }}>
-                  <img src={u.profile?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=default"} alt="Avatar" style={{ width: 48, height: 48, borderRadius: '50%', marginBottom: '0.75rem', objectFit: 'cover' }} />
-                  <h4 style={{ fontWeight: 600, fontSize: '0.95rem' }}>{u.username}</h4>
+                  <img src={u.profile?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=default"} alt="Avatar" style={{ width: 48, height: 48, borderRadius: '50%', marginBottom: '0.75rem', objectFit: 'cover', cursor: 'pointer' }} onClick={() => setSelectedUserId(u._id)} />
+                  <h4 style={{ fontWeight: 600, fontSize: '0.95rem', cursor: 'pointer' }} onClick={() => setSelectedUserId(u._id)}>{u.username}</h4>
                   <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>Rating: {u.stats?.globalRating || 0}</p>
                   <button className="clay-btn btn-outline" style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }} onClick={() => sendRequest(u._id)}><UserPlus size={14} /> Add Friend</button>
                 </div>
@@ -224,14 +226,14 @@ const Friends = ({ onlineUsers = [] }) => {
           {friends.map(f => (
             <div key={f._id} className="card flex flex-col gap-3" style={{ padding: '0.75rem 1rem' }}>
               <div className="flex items-center gap-3">
-                <div style={{ position: 'relative' }}>
+                <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => setSelectedUserId(f._id)}>
                   <img src={f.profile?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=default"} alt="Avatar" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
                   {onlineUsers.some(u => u._id === f._id) && (
                     <span style={{ position: 'absolute', bottom: 0, right: 0, width: 10, height: 10, borderRadius: '50%', background: 'var(--accent-success)', border: '2px solid var(--bg-primary)' }}></span>
                   )}
                 </div>
                 <div>
-                  <h4 style={{ fontWeight: 600, fontSize: '0.95rem' }}>{f.username}</h4>
+                  <h4 style={{ fontWeight: 600, fontSize: '0.95rem', cursor: 'pointer' }} onClick={() => setSelectedUserId(f._id)}>{f.username}</h4>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                     Rating: <span style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>{f.stats?.globalRating || 0}</span>
                   </div>
@@ -300,6 +302,7 @@ const Friends = ({ onlineUsers = [] }) => {
         </div>
       )}
 
+      {selectedUserId && <UserProfileModal userId={selectedUserId} onClose={() => setSelectedUserId(null)} />}
     </div>
   );
 };

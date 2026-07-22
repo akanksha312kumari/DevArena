@@ -81,31 +81,63 @@ const PersonalizedLearning = () => {
               <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>Recommended Topics</h3>
             </div>
             
-            <div className="flex flex-col gap-4">
-              {learningPlan?.roadmap?.map((item, idx) => (
-                <div key={idx} className="clay-recessed flex justify-between items-center" style={{ padding: '1.25rem 1.5rem', transition: 'transform 0.2s', cursor: 'pointer' }} onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}>
-                  <div className="flex items-center gap-4">
-                    <div style={{ width: 40, height: 40, borderRadius: '12px', background: 'var(--card-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: 'var(--accent-primary)', boxShadow: '2px 2px 5px var(--clay-outer-dark), -2px -2px 5px var(--clay-outer-light)' }}>
+            <div style={{ position: 'relative', padding: '2rem 0', margin: '0 1rem' }}>
+              {/* Central dashed line */}
+              <div style={{ position: 'absolute', left: '50%', top: '2rem', bottom: '2rem', width: '4px', borderLeft: '4px dashed var(--accent-primary)', transform: 'translateX(-50%)', opacity: 0.4 }}></div>
+              
+              {learningPlan?.roadmap?.map((item, idx) => {
+                const isLeft = idx % 2 === 0;
+                return (
+                  <div key={idx} style={{ display: 'flex', justifyContent: isLeft ? 'flex-start' : 'flex-end', width: '100%', position: 'relative', marginBottom: '3rem' }}>
+                    
+                    {/* The Node on the central line */}
+                    <div style={{
+                      position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', width: 44, height: 44, borderRadius: '50%', background: 'var(--bg-primary)', border: '4px solid var(--accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: 'var(--accent-primary)', zIndex: 10, boxShadow: '0 4px 6px rgba(0,0,0,0.3)'
+                    }}>
                       {idx + 1}
                     </div>
-                    <div>
-                      <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>{item.topic}</h4>
-                      <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>{item.reason}</p>
+                    
+                    {/* The Topic Card */}
+                    <div className="clay-recessed" style={{
+                       width: '42%',
+                       padding: '1.5rem',
+                       position: 'relative',
+                       display: 'flex',
+                       flexDirection: 'column',
+                       gap: '0.75rem',
+                       transition: 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                       zIndex: 5
+                    }} onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.03)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}>
+                      
+                       {/* Connector to center line */}
+                       <div style={{
+                         position: 'absolute',
+                         top: '50%',
+                         [isLeft ? 'right' : 'left']: '-19%', // approx 8% of total width (42% + 8% = 50%)
+                         width: '19%',
+                         height: '4px',
+                         background: 'var(--accent-primary)',
+                         transform: 'translateY(-50%)',
+                         opacity: 0.4,
+                         zIndex: -1
+                       }}></div>
+
+                       <div className="flex justify-between items-start gap-2">
+                         <h4 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>{item.topic}</h4>
+                         <span className="badge" style={{ backgroundColor: 'transparent', color: getDifficultyColor(item.difficulty), border: `1px solid ${getDifficultyColor(item.difficulty)}`, fontSize: '0.7rem', flexShrink: 0 }}>
+                           {item.difficulty}
+                         </span>
+                       </div>
+                       
+                       <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{item.reason}</p>
+                       
+                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 'auto', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                         <Clock size={14} style={{ color: 'var(--accent-primary)' }} /> {item.estimatedTime}
+                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 text-right">
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem' }}>
-                      <span className="badge" style={{ backgroundColor: 'transparent', color: getDifficultyColor(item.difficulty), border: `1px solid ${getDifficultyColor(item.difficulty)}` }}>
-                        {item.difficulty}
-                      </span>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                        <Clock size={12} /> {item.estimatedTime}
-                      </span>
-                    </div>
-                    <ArrowRight size={20} style={{ color: 'var(--text-muted)' }} />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 

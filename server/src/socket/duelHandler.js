@@ -7,6 +7,7 @@ const judgingService = require('../services/judgingService');
 const mockProblems = require('../data/mockProblems');
 
 const activeDuels = new Map(); // duelId -> duel state
+const socketToDuel = new Map(); // socket.id -> duelId
 let matchmakingQueue = []; // [{ socketId, userId, user: { id, username, avatar, platforms } }]
 
 module.exports = (io, socket, connectedUsers) => {
@@ -83,6 +84,27 @@ module.exports = (io, socket, connectedUsers) => {
 
   socket.on('disconnect', () => {
     matchmakingQueue = matchmakingQueue.filter(p => p.socketId !== socket.id);
+    
+    // Handle duel disconnect
+    const duelId = socketToDuel.get(socket.id);
+    if (duelId) {
+      const duel = activeDuels.get(duelId);
+      const userId = connectedUsers.get(socket.id);
+      if (duel && (duel.status === 'active' || duel.status === 'starting')) {
+        handleDuelForfeit(io, duel, userId);
+      }
+      socketToDuel.delete(socket.id);
+    }
+  });
+
+  socket.on('leave_duel', (duelId) => {
+    const duel = activeDuels.get(duelId);
+    if (!duel) return;
+    const userId = connectedUsers.get(socket.id);
+    if (duel.status === 'active' || duel.status === 'starting') {
+      handleDuelForfeit(io, duel, userId);
+    }
+    socketToDuel.delete(socket.id);
   });
 
   socket.on('accept_challenge', async (data) => {
@@ -226,6 +248,7 @@ module.exports = (io, socket, connectedUsers) => {
   // --- Live Duel Logic ---
   socket.on('join_duel', (duelId) => {
     socket.join(duelId);
+    socketToDuel.set(socket.id, duelId);
     console.log(`Socket ${socket.id} joined duel ${duelId}`);
     
     // Send current state if exists
@@ -410,6 +433,79 @@ const handleDuelWin = (io, duel, winnerId) => {
   activeDuels.delete(duel.id);
 };
 
+const handleDuelForfeit = (io, duel, forfeitingUserId) => {
+  if (duel.status === 'finished') return; // already handled
+  
+  duel.status = 'finished';
+  
+  // Clear any existing timers
+  if (duel.countdownInterval) clearInterval(duel.countdownInterval);
+  if (duel.matchTimeout) clearTimeout(duel.matchTimeout);
+  
+  const losers = duel.players.filter(p => p.id === forfeitingUserId);
+  const winners = duel.players.filter(p => p.id !== forfeitingUserId);
+  
+  if (winners.length === 0 || losers.length === 0) {
+      activeDuels.delete(duel.id);
+      return; 
+  }
+  
+  const winnerId = winners[0].id;
+  duel.winner = winnerId;
+  
+  // Persist to MongoDB
+  Duel.create({
+    players: duel.players.map(p => p.id),
+    winner: winnerId,
+    problem: duel.problem,
+    timeLimit: duel.timeLimit,
+    status: 'finished',
+    startTime: new Date(duel.startTime),
+    endTime: new Date()
+  }).catch(err => console.error('Error saving forfeit duel to DB:', err));
+  
+  // Update Winner
+  User.findById(winnerId).then(user => {
+    if (user) {
+      user.stats = user.stats || {};
+      user.stats.duels = user.stats.duels || { total: 0, wins: 0, losses: 0 };
+      user.stats.duels.total += 1;
+      user.stats.duels.wins += 1;
+      
+      const winRate = user.stats.duels.wins / user.stats.duels.total;
+      if (user.stats.duels.wins >= 10 && winRate > 0.8) user.stats.arenaRank = 'Grandmaster';
+      else if (user.stats.duels.wins >= 5 && winRate > 0.6) user.stats.arenaRank = 'Master';
+      else if (user.stats.duels.wins >= 1) user.stats.arenaRank = 'Challenger';
+
+      recordActivity(user, duel.problem, 'Win (Forfeit)');
+
+      gamificationService.awardXP(user, 100, 'Won a duel by forfeit!', 'duel_win');
+      gamificationService.updateStreak(user);
+      user.save().then(() => {
+        io.to(winnerId).emit('xp_awarded', { amount: 100, reason: 'Won a duel!' });
+      });
+    }
+  }).catch(err => console.error('Error updating winner stats:', err));
+
+  // Update Loser
+  User.findById(forfeitingUserId).then(user => {
+    if (user) {
+      user.stats = user.stats || {};
+      user.stats.duels = user.stats.duels || { total: 0, wins: 0, losses: 0 };
+      user.stats.duels.total += 1;
+      user.stats.duels.losses += 1;
+      recordActivity(user, duel.problem, 'Loss (Forfeited)');
+      user.save();
+    }
+  }).catch(err => console.error('Error updating loser stats:', err));
+  
+  io.to(duel.id).emit('duel_forfeited', {
+    winner: winnerId,
+    reason: 'Opponent Forfeited'
+  });
+  activeDuels.delete(duel.id);
+};
+
 function startDuel(io, duelId, problem) {
   const duel = activeDuels.get(duelId);
   if (!duel) return;
@@ -433,6 +529,7 @@ function startDuelTimer(io, duelId) {
       clearInterval(countdownInterval);
       return;
     }
+    duel.countdownInterval = countdownInterval;
     
     io.to(duelId).emit('duel_countdown', { count });
     count--;
@@ -447,7 +544,7 @@ function startDuelTimer(io, duelId) {
 
         // Set timeout for end of match
         const remainingTime = activeDuel.endTime - Date.now();
-        setTimeout(() => {
+        activeDuel.matchTimeout = setTimeout(() => {
           const d = activeDuels.get(duelId);
           if (d && d.status === 'active') {
             d.status = 'finished';

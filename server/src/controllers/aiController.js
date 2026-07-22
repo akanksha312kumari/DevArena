@@ -33,21 +33,13 @@ const aiChat = async (req, res) => {
     
     CRITICAL RULE: You must ONLY answer questions related to coding, programming, algorithms, computer science, or the user's learning journey on DevArena. If the user asks ANY off-topic questions (e.g., sports, celebrities like "who is messi", politics, movies, etc.), you MUST politely refuse and ask them to please stick to relevant coding and platform topics.`;
 
-    // Map messages for Gemini Chat
-    // Google GenAI sdk uses 'user' and 'model'
-    const chatSession = ai.chats.create({
-      model: 'gemini-1.5-pro',
-      config: {
-        systemInstruction,
-        temperature: 0.7
-      }
-    });
-
-    // We can just send the last user message, or re-run the history.
     // For simplicity, we send the most recent user message.
     const lastUserMsg = messages[messages.length - 1]?.content || 'Hello';
     
-    const response = await chatSession.sendMessage({ message: lastUserMsg });
+    const response = await ai.models.generateContent({
+      model: 'gemma-2-9b-it',
+      contents: systemInstruction + '\n\nUser: ' + lastUserMsg,
+    });
 
     res.json({ content: response.text });
   } catch (error) {
@@ -119,8 +111,9 @@ Return ONLY a valid JSON object with this exact structure (no markdown, no backt
 }`;
 
     // Note: using a gemini model with Gemma persona to avoid API 404 error
+    console.log("Generating Learning Plan using API Key...");
     const response = await ai.models.generateContent({
-      model: 'gemini-1.5-pro',
+      model: 'gemma-2-9b-it',
       contents: prompt,
     });
 
