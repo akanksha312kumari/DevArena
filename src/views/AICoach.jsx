@@ -2,16 +2,36 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
 import { Bot, Send, Sparkles } from 'lucide-react';
 
-const radarData = [
-  { subject: 'Dynamic Programming', A: 42, fullMark: 100 },
-  { subject: 'Graphs', A: 88, fullMark: 100 },
-  { subject: 'Strings', A: 65, fullMark: 100 },
-  { subject: 'Trees', A: 90, fullMark: 100 },
-  { subject: 'Math', A: 50, fullMark: 100 },
-  { subject: 'Greedy', A: 75, fullMark: 100 },
-];
+import { useAuth } from '../context/AuthContext';
+
+// Helper to generate deterministic pseudo-random numbers based on a string seed
+const getSeed = (str) => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return hash;
+};
+
+const getDynamicData = (username) => {
+  const seed = getSeed(username || 'Guest');
+  
+  // Use bitwise operations on the seed to get somewhat consistent 0-100 values
+  const rand = (index) => Math.abs((Math.sin(seed + index) * 10000)) % 70 + 30;
+
+  const data = [
+    { subject: 'Dynamic Programming', A: Math.floor(rand(1)), fullMark: 100 },
+    { subject: 'Graphs', A: Math.floor(rand(2)), fullMark: 100 },
+    { subject: 'Strings', A: Math.floor(rand(3)), fullMark: 100 },
+    { subject: 'Trees', A: Math.floor(rand(4)), fullMark: 100 },
+    { subject: 'Math', A: Math.floor(rand(5)), fullMark: 100 },
+    { subject: 'Greedy', A: Math.floor(rand(6)), fullMark: 100 },
+  ];
+  return data;
+};
 
 const AICoach = () => {
+  const { user } = useAuth();
   const [messages, setMessages] = useState(() => {
     const saved = localStorage.getItem('aiCoachMessages');
     const timestamp = localStorage.getItem('aiCoachTimestamp');
@@ -71,6 +91,11 @@ const AICoach = () => {
     }
   };
 
+  const dynamicRadarData = getDynamicData(user?.username);
+  
+  // Get two weakest subjects for Focus Areas
+  const focusAreas = [...dynamicRadarData].sort((a, b) => a.A - b.A).slice(0, 2);
+
   return (
     <div className="dashboard-grid" style={{ height: 'calc(100vh - 4rem)', gridTemplateColumns: '1fr 2fr' }}>
       {/* Weakness Detection Panel */}
@@ -78,7 +103,7 @@ const AICoach = () => {
         <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1rem' }}>Skill Analysis</h3>
         <div style={{ flex: 1, minHeight: '300px' }}>
           <ResponsiveContainer width="100%" height="100%">
-            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
+            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={dynamicRadarData}>
               <PolarGrid />
               <PolarAngleAxis dataKey="subject" tick={{ fontSize: 12 }} />
               <PolarRadiusAxis angle={30} domain={[0, 100]} />
@@ -89,8 +114,11 @@ const AICoach = () => {
         <div style={{ marginTop: '1rem' }}>
           <h4 style={{ fontWeight: 600, marginBottom: '0.5rem' }}>Focus Areas</h4>
           <div className="flex gap-2 flex-wrap">
-            <span className="badge" style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--accent-danger)' }}>Dynamic Programming (42%)</span>
-            <span className="badge" style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--accent-danger)' }}>Math (50%)</span>
+            {focusAreas.map(area => (
+              <span key={area.subject} className="badge" style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--accent-danger)' }}>
+                {area.subject} ({area.A}%)
+              </span>
+            ))}
           </div>
         </div>
       </div>

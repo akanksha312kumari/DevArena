@@ -1,5 +1,5 @@
 require('dotenv').config({ override: true });
-// Trigger restart for nodemon
+// Trigger restart for nodemon (updated)
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');

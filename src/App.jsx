@@ -61,6 +61,7 @@ const App = () => {
     socket.on('challenge_accepted', onChallengeAccepted);
     socket.on('group_challenge_started', onChallengeAccepted);
     socket.on('duel_finished', onDuelFinished);
+    socket.on('duel_forfeited', onDuelFinished);
     socket.on('online_users_update', onOnlineUsersUpdate);
     socket.on('challenge_received', onChallengeReceived);
     socket.on('challenge_rejected', onChallengeRejected);
@@ -69,6 +70,7 @@ const App = () => {
       socket.off('challenge_accepted', onChallengeAccepted);
       socket.off('group_challenge_started', onChallengeAccepted);
       socket.off('duel_finished', onDuelFinished);
+      socket.off('duel_forfeited', onDuelFinished);
       socket.off('online_users_update', onOnlineUsersUpdate);
       socket.off('challenge_received', onChallengeReceived);
       socket.off('challenge_rejected', onChallengeRejected);

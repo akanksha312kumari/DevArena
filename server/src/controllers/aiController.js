@@ -2,21 +2,23 @@ const { GoogleGenAI } = require('@google/genai');
 const User = require('../models/User');
 
 const aiChat = async (req, res) => {
+  let user = null;
   try {
     const { messages } = req.body;
     if (!messages || !Array.isArray(messages)) {
       return res.status(400).json({ message: 'Invalid messages array' });
     }
 
-    const user = await User.findById(req.user.id);
+    user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     // Try to init Gemini API
     if (!process.env.GEMINI_API_KEY) {
       // Fallback for when no API key is provided
-      return res.json({
-        content: `[MOCK AI] I see you have ${user.xp} XP and a ${user.stats.dailyStreak}-day streak! Keep up the good work. (Note: Add GEMINI_API_KEY to server/.env to enable real AI).`
-      });
+      const msg = req.body.messages[req.body.messages.length - 1]?.content.toLowerCase() || '';
+      let reply = `I see you have ${user.xp} XP and a ${user.stats.dailyStreak}-day streak! Keep up the good work.`;
+      if (msg.includes('hello') || msg.includes('hi')) reply = `Hello ${user.username}! How can I help with your coding today?`;
+      return res.json({ content: `[Coach] ${reply} (Note: Add GEMINI_API_KEY to server/.env for real AI)` });
     }
 
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -37,16 +39,35 @@ const aiChat = async (req, res) => {
     const lastUserMsg = messages[messages.length - 1]?.content || 'Hello';
     
     const response = await ai.models.generateContent({
-      model: 'gemma-2-9b-it',
+      model: 'gemini-2.0-flash',
       contents: systemInstruction + '\n\nUser: ' + lastUserMsg,
     });
 
     res.json({ content: response.text });
   } catch (error) {
     console.error('AI Error:', error);
-    // Fallback if AI fails (e.g. invalid API key, network error)
+    // Responsive Fallback if AI fails (e.g. invalid API key, model not found)
+    const msgs = req.body.messages || [];
+    const msg = msgs[msgs.length - 1]?.content?.toLowerCase() || '';
+    let responseText = "Keep practicing those algorithms! Consistency is key.";
+    
+    if (msg.includes('hello') || msg.includes('hi ') || msg === 'hi') {
+      const name = user ? user.username : 'there';
+      responseText = `Hello ${name}! How are you doing? Ready for a coding challenge?`;
+    } else if (msg.includes('roadmap') || msg.includes('plan')) {
+      responseText = "I recommend focusing on Dynamic Programming next. Check your Learning Path page!";
+    } else if (msg.includes('error') || msg.includes('bug')) {
+      responseText = "Don't worry, every developer faces bugs! Try breaking the problem down and using console logs.";
+    } else if (msg.includes('thank')) {
+      responseText = "You're welcome! Let me know if you need anything else.";
+    } else if (msg.length < 15) {
+      responseText = "I'm listening. Tell me more about what you're working on.";
+    } else if (msg.includes('slump') || msg.includes('stuck') || msg.includes('help')) {
+      responseText = "It's normal to feel stuck sometimes! Take a break, revisit the fundamentals, and try some easier problems to build momentum back up.";
+    }
+
     return res.json({
-      content: `[MOCK AI] I see you're working hard! Keep practicing those algorithms! (Tip: Your API key doesn't support the current Gemini model, but you can still use the platform!)`
+      content: `[Offline Coach] ${responseText}`
     });
   }
 };
@@ -113,7 +134,7 @@ Return ONLY a valid JSON object with this exact structure (no markdown, no backt
     // Note: using a gemini model with Gemma persona to avoid API 404 error
     console.log("Generating Learning Plan using API Key...");
     const response = await ai.models.generateContent({
-      model: 'gemma-2-9b-it',
+      model: 'gemini-2.0-flash',
       contents: prompt,
     });
 

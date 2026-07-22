@@ -12,6 +12,8 @@ const createRoom = async (req, res) => {
       admins: [req.user._id],
       inviteCode,
     });
+    await room.populate('members', 'username profile.avatar stats.globalRating');
+    await room.populate('admins', 'username');
     
     res.status(201).json(room);
   } catch (error) {
@@ -21,8 +23,9 @@ const createRoom = async (req, res) => {
 
 const getRooms = async (req, res) => {
   try {
-    // Return rooms the user is a member of
-    const rooms = await Room.find({ members: req.user._id });
+    const rooms = await Room.find({ members: req.user._id })
+      .populate('members', 'username profile.avatar stats.globalRating')
+      .populate('admins', 'username');
     res.json(rooms);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching rooms' });
@@ -43,10 +46,58 @@ const joinRoom = async (req, res) => {
       await room.save();
     }
 
+    await room.populate('members', 'username profile.avatar stats.globalRating');
+    await room.populate('admins', 'username');
     res.json(room);
   } catch (error) {
     res.status(500).json({ message: 'Error joining room' });
   }
 };
 
-module.exports = { createRoom, getRooms, joinRoom };
+const inviteMember = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const room = await Room.findById(req.params.id);
+    if (!room) return res.status(404).json({ message: 'Room not found' });
+    
+    if (!room.admins.includes(req.user._id)) {
+      return res.status(403).json({ message: 'Only admins can invite' });
+    }
+    
+    if (!room.members.includes(userId)) {
+      room.members.push(userId);
+      await room.save();
+    }
+    
+    await room.populate('members', 'username profile.avatar stats.globalRating');
+    await room.populate('admins', 'username');
+    res.json(room);
+  } catch (error) {
+    res.status(500).json({ message: 'Error inviting member' });
+  }
+};
+
+const kickMember = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const room = await Room.findById(req.params.id);
+    if (!room) return res.status(404).json({ message: 'Room not found' });
+    
+    if (!room.admins.includes(req.user._id)) {
+      return res.status(403).json({ message: 'Only admins can kick' });
+    }
+    
+    room.members = room.members.filter(id => id.toString() !== userId);
+    room.admins = room.admins.filter(id => id.toString() !== userId);
+    
+    await room.save();
+    
+    await room.populate('members', 'username profile.avatar stats.globalRating');
+    await room.populate('admins', 'username');
+    res.json(room);
+  } catch (error) {
+    res.status(500).json({ message: 'Error kicking member' });
+  }
+};
+
+module.exports = { createRoom, getRooms, joinRoom, inviteMember, kickMember };
