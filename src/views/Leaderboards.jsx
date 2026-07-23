@@ -105,7 +105,7 @@ const Leaderboards = () => {
                       const prog = getXPProgress(u.xp || 0);
                       return (
                         <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: isCurrentUser ? '0.25rem' : 0 }}>
                             <span style={{
                               background: 'linear-gradient(135deg, #6366F1, #8B5CF6)',
                               color: 'white', padding: '0.1rem 0.5rem', borderRadius: '9999px',
@@ -117,17 +117,25 @@ const Leaderboards = () => {
                               <Zap size={12} style={{ display: 'inline', verticalAlign: 'middle' }} /> {u.xp || 0} XP
                             </span>
                           </div>
-                          <div style={{
-                            width: '100%', height: '4px', borderRadius: '9999px',
-                            background: 'var(--bg-primary)', overflow: 'hidden'
-                          }}>
-                            <div style={{
-                              height: '100%', borderRadius: '9999px',
-                              width: `${prog.percentage}%`,
-                              background: 'linear-gradient(90deg, #6366F1, #A78BFA)',
-                              transition: 'width 0.3s ease'
-                            }} />
-                          </div>
+                          {isCurrentUser && (
+                            <>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '0.25rem', marginTop: '0.25rem' }}>
+                                <span>{prog.xpInCurrentLevel} / {prog.xpRequiredForNextLevel} XP</span>
+                                <span style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>{prog.percentage}%</span>
+                              </div>
+                              <div style={{
+                                width: '100%', height: '4px', borderRadius: '9999px',
+                                background: 'var(--bg-primary)', overflow: 'hidden'
+                              }}>
+                                <div style={{
+                                  height: '100%', borderRadius: '9999px',
+                                  width: `${prog.percentage}%`,
+                                  background: 'linear-gradient(90deg, #6366F1, #A78BFA)',
+                                  transition: 'width 0.3s ease'
+                                }} />
+                              </div>
+                            </>
+                          )}
                         </div>
                       );
                     })()}

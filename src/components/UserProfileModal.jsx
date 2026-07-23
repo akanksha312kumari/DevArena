@@ -108,36 +108,43 @@ const UserProfileModal = ({ userId, onClose }) => {
 
             {/* XP Progress Section */}
             {(() => {
+              const isCurrentUser = currentUser && currentUser._id === profile._id;
               const prog = getXPProgress(profile.xp || 0);
               return (
                 <div style={{ padding: '1.25rem 2rem', borderBottom: '1px solid var(--card-border)', background: 'var(--bg-secondary)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isCurrentUser ? '0.5rem' : 0 }}>
                     <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                       <Zap size={14} color="var(--accent-primary)" />
-                      {prog.xpInCurrentLevel} / {prog.xpRequiredForNextLevel} XP
+                      {isCurrentUser ? `${prog.xpInCurrentLevel} / ${prog.xpRequiredForNextLevel} XP` : `${prog.totalXP} XP Total`}
                     </span>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>
-                      {prog.xpRemaining} XP to Level {prog.currentLevel + 1}
-                    </span>
+                    {isCurrentUser && (
+                      <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+                        {prog.xpRemaining} XP to Level {prog.currentLevel + 1}
+                      </span>
+                    )}
                   </div>
-                  <div style={{
-                    width: '100%', height: '10px', borderRadius: '9999px', overflow: 'hidden',
-                    background: 'var(--bg-primary)',
-                    boxShadow: 'inset 2px 2px 4px var(--clay-outer-dark), inset -2px -2px 4px var(--clay-outer-light)'
-                  }}>
-                    <div style={{
-                      height: '100%', borderRadius: '9999px',
-                      width: `${prog.percentage}%`,
-                      background: 'linear-gradient(90deg, #6366F1, #818CF8, #A78BFA)',
-                      boxShadow: '0 0 8px rgba(99, 102, 241, 0.4)',
-                      transition: 'width 0.5s ease'
-                    }} />
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.3rem' }}>
-                    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--accent-primary)' }}>Lv. {prog.currentLevel}</span>
-                    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--accent-primary)', opacity: 0.6 }}>{prog.percentage}%</span>
-                    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)' }}>Lv. {prog.currentLevel + 1}</span>
-                  </div>
+                  {isCurrentUser && (
+                    <>
+                      <div style={{
+                        width: '100%', height: '10px', borderRadius: '9999px', overflow: 'hidden',
+                        background: 'var(--bg-primary)',
+                        boxShadow: 'inset 2px 2px 4px var(--clay-outer-dark), inset -2px -2px 4px var(--clay-outer-light)'
+                      }}>
+                        <div style={{
+                          height: '100%', borderRadius: '9999px',
+                          width: `${prog.percentage}%`,
+                          background: 'linear-gradient(90deg, #6366F1, #818CF8, #A78BFA)',
+                          boxShadow: '0 0 8px rgba(99, 102, 241, 0.4)',
+                          transition: 'width 0.5s ease'
+                        }} />
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.3rem' }}>
+                        <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--accent-primary)' }}>Lv. {prog.currentLevel}</span>
+                        <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--accent-primary)', opacity: 0.6 }}>{prog.percentage}%</span>
+                        <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)' }}>Lv. {prog.currentLevel + 1}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
               );
             })()}
