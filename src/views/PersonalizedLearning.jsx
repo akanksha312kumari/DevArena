@@ -11,19 +11,20 @@ const PersonalizedLearning = () => {
     setError(null);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5000/api/ai/learning-plan', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/ai/learning-plan`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
       if (!res.ok) {
-        throw new Error('Failed to generate learning plan.');
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to generate learning plan.');
       }
       const data = await res.json();
       setLearningPlan(data);
     } catch (err) {
       console.error(err);
-      setError('Could not connect to the AI service. Please try again later.');
+      setError(err.message || 'Could not connect to the AI service. Please try again later.');
     } finally {
       setLoading(false);
     }

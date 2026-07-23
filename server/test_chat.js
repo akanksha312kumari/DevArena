@@ -1,8 +1,9 @@
 const axios = require('axios');
 (async () => {
   try {
-    const res = await axios.post('http://localhost:5000/api/ai/chat', {
-      messages: [{ role: 'user', content: 'hello' }]
+    const apiUrl = process.env.API_URL || 'http://localhost:5000/api';
+    const res = await axios.post(`${apiUrl}/ai/chat`, {
+      messages: [{ role: 'user', content: 'Can you help me learn dynamic programming?' }]
     }, {
       headers: {
         // Need to simulate auth, or bypass auth?
