@@ -1,4 +1,3 @@
-const { GoogleGenAI } = require('@google/genai');
 const User = require('../models/User');
 
 const aiChat = async (req, res) => {
@@ -12,17 +11,15 @@ const aiChat = async (req, res) => {
     user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // Try to init Gemini API
-    if (!process.env.GEMINI_API_KEY) {
+    // Try to init Groq API
+    if (!process.env.GROQ_API_KEY) {
       // Fallback for when no API key is provided
       const msg = req.body.messages[req.body.messages.length - 1]?.content.toLowerCase() || '';
       let reply = `I see you have ${user.xp} XP and a ${user.stats.dailyStreak}-day streak! Keep up the good work.`;
       if (msg.includes('hello') || msg.includes('hi')) reply = `Hello ${user.username}! How can I help with your coding today?`;
-      return res.json({ content: `[Coach] ${reply} (Note: Add GEMINI_API_KEY to server/.env for real AI)` });
+      return res.json({ content: `[Coach] ${reply} (Note: Add GROQ_API_KEY to server/.env for real AI)` });
     }
 
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-    
     // Construct System Prompt
     const systemInstruction = `You are the DevArena AI Coach. 
     You are advising user ${user.username}.
@@ -38,12 +35,29 @@ const aiChat = async (req, res) => {
     // For simplicity, we send the most recent user message.
     const lastUserMsg = messages[messages.length - 1]?.content || 'Hello';
     
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
-      contents: systemInstruction + '\n\nUser: ' + lastUserMsg,
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          { role: 'system', content: systemInstruction },
+          { role: 'user', content: lastUserMsg }
+        ]
+      })
     });
+    
+    if (!response.ok) {
+        throw new Error(`Groq API Error: ${response.status} ${response.statusText}`);
+    }
 
-    res.json({ content: response.text });
+    const data = await response.json();
+    const text = data.choices[0].message.content;
+
+    res.json({ content: text });
   } catch (error) {
     console.error('AI Error:', error);
     // Responsive Fallback if AI fails (e.g. invalid API key, model not found)
@@ -90,11 +104,11 @@ const getLearningPlan = async (req, res) => {
       });
     }
 
-    if (!process.env.GEMINI_API_KEY) {
+    if (!process.env.GROQ_API_KEY) {
       return res.json({
         roadmap: [
-          { topic: 'Dynamic Programming', difficulty: 'Hard', estimatedTime: '2 hours', reason: 'You have a 30% success rate.' },
-          { topic: 'Two Pointers', difficulty: 'Medium', estimatedTime: '1 hour', reason: 'Great for array problems.' }
+          { topic: 'Dynamic Programming', difficulty: 'Hard', estimatedTime: '2 hours', reason: 'You have a 30% success rate.', steps: ['Learn memoization', 'Solve 1D DP', 'Solve 2D DP'] },
+          { topic: 'Two Pointers', difficulty: 'Medium', estimatedTime: '1 hour', reason: 'Great for array problems.', steps: ['Learn theory', 'Solve basic pairs', 'Master sliding window'] }
         ],
         dailyChallenges: [
           { title: 'Two Sum', difficulty: 'Easy', reason: 'Warm up exercise.' },
@@ -103,8 +117,6 @@ const getLearningPlan = async (req, res) => {
       });
     }
 
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-    
     // Construct user stats payload
     const userStats = {
       globalRating: user.stats.globalRating,
@@ -115,30 +127,44 @@ const getLearningPlan = async (req, res) => {
       recentSubmissions: user.recentSubmissions.slice(0, 10).map(s => s.title)
     };
 
-    const prompt = `You are a personalized AI coding coach powered by Gemma. 
+    const prompt = `You are a personalized AI coding coach powered by Llama. 
 Analyze the following user stats: ${JSON.stringify(userStats)}.
 Based on their rating, solved problems, and recent submissions, generate:
-1. A Personalized Learning Roadmap: Rank topics from weakest to strongest. Recommend the next 5 topics to study with estimated difficulty, study time, and a short reason.
+1. A Personalized Learning Roadmap: Rank topics from weakest to strongest. Recommend the next 5 topics to study with estimated difficulty, study time, a short reason, and an array of 3 very brief actionable steps to tackle the topic (e.g. ['Learn theory', 'Solve 5 easy array problems', 'Master two pointers technique']).
 2. AI Daily Challenge Recommendation: Recommend 3 specific coding problems (mix of Easy/Medium/Hard) based on weak topics and current skill level, with a short reason for each.
 
 Return ONLY a valid JSON object with this exact structure (no markdown, no backticks, no extra text):
 {
   "roadmap": [
-    { "topic": "string", "difficulty": "string", "estimatedTime": "string", "reason": "string" }
+    { "topic": "string", "difficulty": "string", "estimatedTime": "string", "reason": "string", "steps": ["string"] }
   ],
   "dailyChallenges": [
     { "title": "string", "difficulty": "string", "reason": "string" }
   ]
 }`;
 
-    // Note: using a gemini model with Gemma persona to avoid API 404 error
-    console.log("Generating Learning Plan using API Key...");
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
-      contents: prompt,
+    console.log("Generating Learning Plan using Groq API...");
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          { role: 'user', content: prompt }
+        ]
+      })
     });
+    
+    if (!response.ok) {
+        throw new Error(`Groq API Error: ${response.status} ${response.statusText}`);
+    }
 
-    let resultText = response.text;
+    const data = await response.json();
+    let resultText = data.choices[0].message.content;
+    
     // Clean up any potential markdown formatting from the response
     resultText = resultText.replace(/```json/g, '').replace(/```/g, '').trim();
     
@@ -155,11 +181,11 @@ Return ONLY a valid JSON object with this exact structure (no markdown, no backt
     res.json(parsedData);
   } catch (error) {
     console.error('Learning Plan Error:', error);
-    // Fallback if AI fails or model not found (e.g., if gemma/gemini is unavailable or API key is invalid)
+    // Fallback if AI fails or model not found
     return res.json({
       roadmap: [
-        { topic: 'Dynamic Programming (Fallback)', difficulty: 'Hard', estimatedTime: '2 hours', reason: 'You have a 30% success rate.' },
-        { topic: 'Two Pointers', difficulty: 'Medium', estimatedTime: '1 hour', reason: 'Great for array problems.' }
+        { topic: 'Dynamic Programming (Fallback)', difficulty: 'Hard', estimatedTime: '2 hours', reason: 'You have a 30% success rate.', steps: ['Learn memoization', 'Solve 1D DP', 'Solve 2D DP'] },
+        { topic: 'Two Pointers', difficulty: 'Medium', estimatedTime: '1 hour', reason: 'Great for array problems.', steps: ['Learn theory', 'Solve basic pairs', 'Master sliding window'] }
       ],
       dailyChallenges: [
         { title: 'Two Sum (Fallback)', difficulty: 'Easy', reason: 'Warm up exercise.' },

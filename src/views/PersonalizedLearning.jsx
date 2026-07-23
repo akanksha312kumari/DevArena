@@ -131,6 +131,16 @@ const PersonalizedLearning = () => {
                        
                        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{item.reason}</p>
                        
+                       {item.steps && item.steps.length > 0 && (
+                         <div style={{ marginTop: '0.25rem', marginBottom: '0.25rem' }}>
+                           <ul style={{ margin: 0, paddingLeft: '1rem', listStyleType: 'disc', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                             {item.steps.map((step, sIdx) => (
+                               <li key={sIdx} style={{ marginBottom: '0.15rem' }}>{step}</li>
+                             ))}
+                           </ul>
+                         </div>
+                       )}
+                       
                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 'auto', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>
                          <Clock size={14} style={{ color: 'var(--accent-primary)' }} /> {item.estimatedTime}
                        </div>
