@@ -105,6 +105,7 @@ const getLearningPlan = async (req, res) => {
     }
 
     if (!process.env.GROQ_API_KEY) {
+      console.warn("Learning Plan: GROQ_API_KEY is missing. Returning fallback roadmap data.");
       return res.json({
         roadmap: [
           { topic: 'Dynamic Programming', difficulty: 'Hard', estimatedTime: '2 hours', reason: 'You have a 30% success rate.', steps: ['Learn memoization', 'Solve 1D DP', 'Solve 2D DP'] },
@@ -159,14 +160,24 @@ Return ONLY a valid JSON object with this exact structure (no markdown, no backt
     });
     
     if (!response.ok) {
-        throw new Error(`Groq API Error: ${response.status} ${response.statusText}`);
+        const errorText = await response.text();
+        console.error(`Groq API Error [${response.status}]:`, errorText);
+        throw new Error(`Groq API Error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
     let resultText = data.choices[0].message.content;
     
-    // Clean up any potential markdown formatting from the response
-    resultText = resultText.replace(/```json/g, '').replace(/```/g, '').trim();
+    // Clean up any potential markdown formatting or conversational text from the response
+    let jsonStart = resultText.indexOf('{');
+    let jsonEnd = resultText.lastIndexOf('}');
+    
+    if (jsonStart === -1 || jsonEnd === -1) {
+      throw new Error('No valid JSON object found in the AI response: ' + resultText);
+    }
+    
+    resultText = resultText.substring(jsonStart, jsonEnd + 1);
+    console.log("Groq Raw Response:", resultText);
     
     const parsedData = JSON.parse(resultText);
 
@@ -181,17 +192,7 @@ Return ONLY a valid JSON object with this exact structure (no markdown, no backt
     res.json(parsedData);
   } catch (error) {
     console.error('Learning Plan Error:', error);
-    // Fallback if AI fails or model not found
-    return res.json({
-      roadmap: [
-        { topic: 'Dynamic Programming (Fallback)', difficulty: 'Hard', estimatedTime: '2 hours', reason: 'You have a 30% success rate.', steps: ['Learn memoization', 'Solve 1D DP', 'Solve 2D DP'] },
-        { topic: 'Two Pointers', difficulty: 'Medium', estimatedTime: '1 hour', reason: 'Great for array problems.', steps: ['Learn theory', 'Solve basic pairs', 'Master sliding window'] }
-      ],
-      dailyChallenges: [
-        { title: 'Two Sum (Fallback)', difficulty: 'Easy', reason: 'Warm up exercise.' },
-        { title: 'Longest Substring', difficulty: 'Medium', reason: 'Improve sliding window skills.' }
-      ]
-    });
+    res.status(500).json({ message: 'Failed to generate learning plan from AI: ' + error.message });
   }
 };
 
