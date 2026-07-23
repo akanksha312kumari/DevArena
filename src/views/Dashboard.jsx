@@ -1,7 +1,34 @@
-import React, { useState, useEffect } from 'react';
-import { Flame, Trophy, Activity, Swords, Code, ExternalLink, Calendar, Star, TrendingUp, CheckCircle, XCircle } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Flame, Trophy, Activity, Swords, Code, ExternalLink, Calendar, Star, TrendingUp, CheckCircle, XCircle, Zap } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+
+// ── XP Progression Utilities ──
+// Formula: XP required to reach level L = 50 * L * (L - 1)
+// Quadratic growth: L1→L2: 100, L2→L3: 200, L3→L4: 300, ...
+function getXPForLevel(level) {
+  if (level <= 1) return 0;
+  return 50 * level * (level - 1);
+}
+
+function getLevelFromXP(totalXP) {
+  if (totalXP <= 0) return 1;
+  const level = Math.floor((50 + Math.sqrt(2500 + 200 * totalXP)) / 100);
+  return Math.max(1, level);
+}
+
+function getXPProgress(totalXP) {
+  const currentLevel = getLevelFromXP(totalXP);
+  const currentLevelXP = getXPForLevel(currentLevel);
+  const nextLevelXP = getXPForLevel(currentLevel + 1);
+  const xpInCurrentLevel = totalXP - currentLevelXP;
+  const xpRequiredForNextLevel = nextLevelXP - currentLevelXP;
+  const xpRemaining = nextLevelXP - totalXP;
+  const percentage = xpRequiredForNextLevel > 0
+    ? Math.min(100, Math.round((xpInCurrentLevel / xpRequiredForNextLevel) * 100))
+    : 100;
+  return { currentLevel, totalXP, currentLevelXP, nextLevelXP, xpInCurrentLevel, xpRequiredForNextLevel, xpRemaining, percentage };
+}
 
 const Heatmap = ({ heatmapData = {} }) => {
   // Generate a mock or real heatmap (last 52 weeks = 364 days for a full horizontal heatmap)
@@ -141,6 +168,24 @@ const Dashboard = ({ setActiveTab, setSelectedPotd }) => {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [showAllSubmissions, setShowAllSubmissions] = useState(false);
   const [arenaRank, setArenaRank] = useState(null);
+  const [showLevelUp, setShowLevelUp] = useState(false);
+  const [levelUpLevel, setLevelUpLevel] = useState(0);
+  const prevLevelRef = useRef(null);
+
+  // XP Progression
+  const totalXP = user?.xp || 0;
+  const xpProgress = getXPProgress(totalXP);
+
+  // Detect level-up
+  useEffect(() => {
+    if (prevLevelRef.current !== null && xpProgress.currentLevel > prevLevelRef.current) {
+      setLevelUpLevel(xpProgress.currentLevel);
+      setShowLevelUp(true);
+      const timer = setTimeout(() => setShowLevelUp(false), 4000);
+      return () => clearTimeout(timer);
+    }
+    prevLevelRef.current = xpProgress.currentLevel;
+  }, [xpProgress.currentLevel]);
 
   useEffect(() => {
     const fetchRank = async () => {
@@ -245,34 +290,107 @@ const Dashboard = ({ setActiveTab, setSelectedPotd }) => {
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       
-      {/* Compact Top Profile Bar */}
-      <div className="clay-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.5rem 2rem' }}>
-        <div className="flex items-center gap-4">
-          <img src={user?.profile?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=default"} alt="Profile" style={{ width: '64px', height: '64px', borderRadius: '50%' }} />
-          <div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.25rem' }}>{user?.username}</h2>
-            <div className="flex gap-4" style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-              <span>Level {user?.level || 1}</span>
-              <span>{user?.xp || 0} XP</span>
+      {/* Level Up Toast */}
+      {showLevelUp && (
+        <div style={{
+          position: 'fixed', top: '2rem', left: '50%', transform: 'translateX(-50%)',
+          zIndex: 9999, padding: '1rem 2rem', borderRadius: '16px',
+          background: 'linear-gradient(135deg, #6366F1, #8B5CF6)',
+          color: 'white', fontWeight: 700, fontSize: '1.1rem',
+          boxShadow: '0 8px 32px rgba(99, 102, 241, 0.5)',
+          animation: 'levelUpToast 4s ease-in-out forwards',
+          display: 'flex', alignItems: 'center', gap: '0.75rem'
+        }}>
+          <span style={{ fontSize: '1.5rem' }}>🎉</span>
+          Level Up! You reached Level {levelUpLevel}
+          <Zap size={20} />
+        </div>
+      )}
+
+      {/* Compact Top Profile Bar with XP Progress */}
+      <div className="clay-card" style={{ padding: '1.5rem 2rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+          <div className="flex items-center gap-4">
+            <img src={user?.profile?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=default"} alt="Profile" style={{ width: '64px', height: '64px', borderRadius: '50%' }} />
+            <div>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.25rem' }}>{user?.username}</h2>
+              <div className="flex items-center gap-3" style={{ fontSize: '0.875rem', fontWeight: 600 }}>
+                <span style={{
+                  background: 'linear-gradient(135deg, #6366F1, #8B5CF6)',
+                  color: 'white', padding: '0.2rem 0.75rem', borderRadius: '9999px',
+                  fontSize: '0.8rem', fontWeight: 700,
+                  boxShadow: '0 2px 8px rgba(99, 102, 241, 0.4)'
+                }}>
+                  Level {xpProgress.currentLevel}
+                </span>
+                <span style={{ color: 'var(--text-secondary)' }}>
+                  <Zap size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '2px' }} />
+                  {totalXP} XP
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex gap-6">
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Global Rating</div>
+              <div className="flex items-center gap-1 justify-center" style={{ fontWeight: 700, fontSize: '1.25rem' }}>
+                <Trophy size={20} color="var(--accent-primary)" />
+                {stats.globalRating}
+              </div>
+            </div>
+            <div style={{ width: '2px', background: 'var(--bg-primary)' }} />
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Daily Streak</div>
+              <div className="flex items-center gap-1 justify-center" style={{ fontWeight: 700, fontSize: '1.25rem' }}>
+                <Flame size={20} color="var(--accent-streak)" />
+                {stats.dailyStreak}
+              </div>
             </div>
           </div>
         </div>
-        
-        <div className="flex gap-6">
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Global Rating</div>
-            <div className="flex items-center gap-1 justify-center" style={{ fontWeight: 700, fontSize: '1.25rem' }}>
-              <Trophy size={20} color="var(--accent-primary)" />
-              {stats.globalRating}
-            </div>
+
+        {/* XP Progress Section */}
+        <div>
+          <div className="flex justify-between items-center" style={{ marginBottom: '0.5rem' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+              {xpProgress.xpInCurrentLevel} / {xpProgress.xpRequiredForNextLevel} XP
+            </span>
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+              {xpProgress.xpRemaining} XP to Level {xpProgress.currentLevel + 1}
+            </span>
           </div>
-          <div style={{ width: '2px', background: 'var(--bg-primary)' }} />
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Daily Streak</div>
-            <div className="flex items-center gap-1 justify-center" style={{ fontWeight: 700, fontSize: '1.25rem' }}>
-              <Flame size={20} color="var(--accent-streak)" />
-              {stats.dailyStreak}
-            </div>
+
+          {/* Progress Bar */}
+          <div
+            style={{
+              position: 'relative', width: '100%', height: '14px',
+              borderRadius: '9999px', overflow: 'hidden',
+              background: 'var(--bg-primary)',
+              boxShadow: 'inset 2px 2px 5px var(--clay-outer-dark), inset -2px -2px 5px var(--clay-outer-light)'
+            }}
+            title={`${totalXP} XP total\n${xpProgress.xpInCurrentLevel} / ${xpProgress.xpRequiredForNextLevel} XP in current level\n${xpProgress.xpRemaining} XP remaining\n${xpProgress.percentage}% complete`}
+          >
+            <div style={{
+              height: '100%', borderRadius: '9999px',
+              width: `${xpProgress.percentage}%`,
+              background: 'linear-gradient(90deg, #6366F1, #818CF8, #A78BFA)',
+              boxShadow: '0 0 12px rgba(99, 102, 241, 0.5)',
+              transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+            }} />
+          </div>
+
+          {/* Milestone markers */}
+          <div className="flex justify-between" style={{ marginTop: '0.35rem' }}>
+            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--accent-primary)' }}>
+              Lv. {xpProgress.currentLevel}
+            </span>
+            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--accent-primary)', opacity: 0.6 }}>
+              {xpProgress.percentage}%
+            </span>
+            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+              Lv. {xpProgress.currentLevel + 1}
+            </span>
           </div>
         </div>
       </div>

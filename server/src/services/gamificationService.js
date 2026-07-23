@@ -1,3 +1,5 @@
+const { getLevelFromXP } = require('../utils/xpProgression');
+
 class GamificationService {
   /**
    * Process newly solved problems to award XP and update universal streak.
@@ -24,11 +26,13 @@ class GamificationService {
   awardXP(user, amount, reason, eventType = 'achievement') {
     user.xp = (user.xp || 0) + amount;
     const oldLevel = user.level || 1;
-    const newLevel = Math.floor(user.xp / 100) + 1;
+    const newLevel = getLevelFromXP(user.xp);
     
     if (newLevel > oldLevel) {
       user.level = newLevel;
       this.addActivity(user, 'badge', `Level Up!`, `You reached Level ${newLevel}!`);
+    } else {
+      user.level = newLevel;
     }
 
     if (reason) {
