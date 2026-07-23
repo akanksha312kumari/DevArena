@@ -2,33 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Flame, Trophy, Activity, Swords, Code, ExternalLink, Calendar, Star, TrendingUp, CheckCircle, XCircle, Zap } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
-
-// ── XP Progression Utilities ──
-// Formula: XP required to reach level L = 50 * L * (L - 1)
-// Quadratic growth: L1→L2: 100, L2→L3: 200, L3→L4: 300, ...
-function getXPForLevel(level) {
-  if (level <= 1) return 0;
-  return 50 * level * (level - 1);
-}
-
-function getLevelFromXP(totalXP) {
-  if (totalXP <= 0) return 1;
-  const level = Math.floor((50 + Math.sqrt(2500 + 200 * totalXP)) / 100);
-  return Math.max(1, level);
-}
-
-function getXPProgress(totalXP) {
-  const currentLevel = getLevelFromXP(totalXP);
-  const currentLevelXP = getXPForLevel(currentLevel);
-  const nextLevelXP = getXPForLevel(currentLevel + 1);
-  const xpInCurrentLevel = totalXP - currentLevelXP;
-  const xpRequiredForNextLevel = nextLevelXP - currentLevelXP;
-  const xpRemaining = nextLevelXP - totalXP;
-  const percentage = xpRequiredForNextLevel > 0
-    ? Math.min(100, Math.round((xpInCurrentLevel / xpRequiredForNextLevel) * 100))
-    : 100;
-  return { currentLevel, totalXP, currentLevelXP, nextLevelXP, xpInCurrentLevel, xpRequiredForNextLevel, xpRemaining, percentage };
-}
+import { getLevelFromXP, getXPForLevel, getXPProgress } from '../utils/xpProgression';
 
 const Heatmap = ({ heatmapData = {} }) => {
   // Generate a mock or real heatmap (last 52 weeks = 364 days for a full horizontal heatmap)

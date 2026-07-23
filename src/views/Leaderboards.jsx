@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Code2, Flame, Star } from 'lucide-react';
+import { Trophy, Code2, Flame, Star, Zap } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import UserProfileModal from '../components/UserProfileModal';
+import { getLevelFromXP, getXPProgress } from '../utils/xpProgression';
 
 const Leaderboards = () => {
   const { user } = useAuth();
@@ -100,7 +101,37 @@ const Leaderboards = () => {
                     </div>
                   </td>
                   <td style={{ padding: '0.75rem 1rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
-                    Lvl {u.level || 1} <span style={{ fontSize: '0.75rem' }}>({u.xp || 0} XP)</span>
+                    {(() => {
+                      const prog = getXPProgress(u.xp || 0);
+                      return (
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                            <span style={{
+                              background: 'linear-gradient(135deg, #6366F1, #8B5CF6)',
+                              color: 'white', padding: '0.1rem 0.5rem', borderRadius: '9999px',
+                              fontSize: '0.7rem', fontWeight: 700
+                            }}>
+                              Lv. {prog.currentLevel}
+                            </span>
+                            <span style={{ fontSize: '0.75rem' }}>
+                              <Zap size={12} style={{ display: 'inline', verticalAlign: 'middle' }} /> {u.xp || 0} XP
+                            </span>
+                          </div>
+                          <div style={{
+                            width: '100%', height: '4px', borderRadius: '9999px',
+                            background: 'var(--bg-primary)', overflow: 'hidden'
+                          }}>
+                            <div style={{
+                              height: '100%', borderRadius: '9999px',
+                              width: `${prog.percentage}%`,
+                              background: 'linear-gradient(90deg, #6366F1, #A78BFA)',
+                              transition: 'width 0.3s ease'
+                            }} />
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  
                   </td>
                   <td style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>{u.stats?.globalRating || 0}</td>
                   <td style={{ padding: '0.75rem 1rem' }}>

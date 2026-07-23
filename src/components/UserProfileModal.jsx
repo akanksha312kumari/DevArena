@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Trophy, Swords, UserPlus, Check } from 'lucide-react';
+import { X, Trophy, Swords, UserPlus, Check, Zap } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { getLevelFromXP, getXPProgress } from '../utils/xpProgression';
 
 const UserProfileModal = ({ userId, onClose }) => {
   const { user: currentUser } = useAuth();
@@ -84,7 +85,7 @@ const UserProfileModal = ({ userId, onClose }) => {
                 <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>{profile.profile?.bio || 'Competitive programmer.'}</div>
                 
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <span className="badge" style={{ background: 'rgba(217, 119, 6, 0.1)', color: 'var(--accent-primary)' }}>Level {profile.level}</span>
+                  <span className="badge" style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6)', color: 'white' }}>Level {getLevelFromXP(profile.xp || 0)}</span>
                   <span className="badge" style={{ background: 'rgba(168, 85, 247, 0.1)', color: 'var(--accent-streak)' }}>{profile.stats?.arenaRank || 'Unranked'}</span>
                 </div>
               </div>
@@ -104,6 +105,42 @@ const UserProfileModal = ({ userId, onClose }) => {
                 </div>
               )}
             </div>
+
+            {/* XP Progress Section */}
+            {(() => {
+              const prog = getXPProgress(profile.xp || 0);
+              return (
+                <div style={{ padding: '1.25rem 2rem', borderBottom: '1px solid var(--card-border)', background: 'var(--bg-secondary)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <Zap size={14} color="var(--accent-primary)" />
+                      {prog.xpInCurrentLevel} / {prog.xpRequiredForNextLevel} XP
+                    </span>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+                      {prog.xpRemaining} XP to Level {prog.currentLevel + 1}
+                    </span>
+                  </div>
+                  <div style={{
+                    width: '100%', height: '10px', borderRadius: '9999px', overflow: 'hidden',
+                    background: 'var(--bg-primary)',
+                    boxShadow: 'inset 2px 2px 4px var(--clay-outer-dark), inset -2px -2px 4px var(--clay-outer-light)'
+                  }}>
+                    <div style={{
+                      height: '100%', borderRadius: '9999px',
+                      width: `${prog.percentage}%`,
+                      background: 'linear-gradient(90deg, #6366F1, #818CF8, #A78BFA)',
+                      boxShadow: '0 0 8px rgba(99, 102, 241, 0.4)',
+                      transition: 'width 0.5s ease'
+                    }} />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.3rem' }}>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--accent-primary)' }}>Lv. {prog.currentLevel}</span>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--accent-primary)', opacity: 0.6 }}>{prog.percentage}%</span>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)' }}>Lv. {prog.currentLevel + 1}</span>
+                  </div>
+                </div>
+              );
+            })()}
             
             {/* Body */}
             <div style={{ padding: '2rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>

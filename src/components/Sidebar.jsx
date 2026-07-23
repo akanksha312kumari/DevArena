@@ -2,6 +2,7 @@ import React from 'react';
 import { LayoutDashboard, Swords, Users, Bot, Trophy, Code2, Settings, Hash, Target, BookOpen } from 'lucide-react';
 import logo from '../assets/logoooo.png';
 import { useAuth } from '../context/AuthContext';
+import { getLevelFromXP } from '../utils/xpProgression';
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
   const { user } = useAuth();
@@ -56,7 +57,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
               <img src={user.profile?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=default"} alt="User Avatar" style={{ width: 28, height: 28, borderRadius: '50%' }} />
               <div>
                 <div style={{ fontSize: '0.8rem', fontWeight: 600 }}>{user.username}</div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Level {user.level || 1}</div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Level {getLevelFromXP(user.xp || 0)}</div>
               </div>
             </div>
           </div>
