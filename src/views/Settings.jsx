@@ -260,25 +260,34 @@ const Settings = ({ isDark, setIsDark, setActiveTab }) => {
             </button>
           </div>
           <div style={{ display: 'grid', gap: '1rem', marginBottom: '2rem' }}>
-            {platforms.map(p => (
-              <div key={p.id} className="flex flex-col gap-2" style={{ padding: '1rem', border: '1px solid var(--card-border)', borderRadius: '8px', background: 'var(--bg-secondary)' }}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <LinkIcon size={20} color="var(--text-muted)" />
-                    <span style={{ fontWeight: 500 }}>{p.label}</span>
+            {platforms.map(p => {
+              const isConnected = Boolean(user?.platforms?.[p.id]);
+              
+              return (
+                <div key={p.id} className={`flex flex-col gap-2 ${isConnected ? 'connected-card' : ''}`} style={{ padding: '1rem', border: '1px solid var(--card-border)', borderRadius: '8px', background: 'var(--bg-secondary)' }}>
+                  <div className="flex items-center justify-between" style={{ position: 'relative', zIndex: 1 }}>
+                    <div className="flex items-center gap-3">
+                      <LinkIcon size={20} color={isConnected ? '#10B981' : 'var(--text-muted)'} />
+                      <span style={{ fontWeight: 500, color: isConnected ? '#10B981' : 'inherit' }}>
+                        {p.label}
+                        {isConnected && <span className="status-indicator" style={{ marginLeft: '8px' }}></span>}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <input type="text" name={p.id} value={formData[p.id]} onChange={handleChange} placeholder="Handle" style={{ padding: '0.5rem', borderRadius: '4px', border: isConnected ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid var(--card-border)', background: isConnected ? 'rgba(16, 185, 129, 0.05)' : 'var(--bg-primary)', outline: 'none', color: 'var(--text-primary)' }} />
+                      <button className={`btn btn-outline ${isConnected ? 'btn-synced' : ''}`} onClick={() => handleSync(p.id)} disabled={isSyncing || !formData[p.id]}>
+                        {isConnected ? 'Synced ✓' : 'Sync'}
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <input type="text" name={p.id} value={formData[p.id]} onChange={handleChange} placeholder="Handle" style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--card-border)' }} />
-                    <button className="btn btn-outline" onClick={() => handleSync(p.id)} disabled={isSyncing || !formData[p.id]}>Sync</button>
-                  </div>
+                  {user?.lastSynced && user.lastSynced[p.id] && (
+                    <div style={{ position: 'relative', zIndex: 1, fontSize: '0.75rem', color: isConnected ? 'rgba(16, 185, 129, 0.8)' : 'var(--text-muted)', textAlign: 'right' }}>
+                      Last Synced: {formatLastSynced(user.lastSynced[p.id])}
+                    </div>
+                  )}
                 </div>
-                {user?.lastSynced && user.lastSynced[p.id] && (
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'right' }}>
-                    Last Synced: {formatLastSynced(user.lastSynced[p.id])}
-                  </div>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
           <button className="btn btn-primary" onClick={handleSaveProfile}><Save size={20} /> Save Profile Changes</button>
         </section>
