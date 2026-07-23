@@ -1,37 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
-import { Bot, Send, Sparkles } from 'lucide-react';
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
+import { Bot, Send, Sparkles, Activity } from 'lucide-react';
 
 import { useAuth } from '../context/AuthContext';
 
-// Helper to generate deterministic pseudo-random numbers based on a string seed
-const getSeed = (str) => {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return hash;
-};
-
-const getDynamicData = (username) => {
-  const seed = getSeed(username || 'Guest');
-  
-  // Use bitwise operations on the seed to get somewhat consistent 0-100 values
-  const rand = (index) => Math.abs((Math.sin(seed + index) * 10000)) % 70 + 30;
-
-  const data = [
-    { subject: 'Dynamic Programming', A: Math.floor(rand(1)), fullMark: 100 },
-    { subject: 'Graphs', A: Math.floor(rand(2)), fullMark: 100 },
-    { subject: 'Strings', A: Math.floor(rand(3)), fullMark: 100 },
-    { subject: 'Trees', A: Math.floor(rand(4)), fullMark: 100 },
-    { subject: 'Math', A: Math.floor(rand(5)), fullMark: 100 },
-    { subject: 'Greedy', A: Math.floor(rand(6)), fullMark: 100 },
-  ];
-  return data;
-};
-
 const AICoach = () => {
   const { user } = useAuth();
+  
+  // Skill Analysis State
+  const [skillData, setSkillData] = useState(null);
+  const [skillLoading, setSkillLoading] = useState(true);
+  const [skillError, setSkillError] = useState(null);
+
+  // Chat State
   const [messages, setMessages] = useState(() => {
     const saved = localStorage.getItem('aiCoachMessages');
     const timestamp = localStorage.getItem('aiCoachTimestamp');
@@ -41,7 +22,7 @@ const AICoach = () => {
       } catch (e) {}
     }
     return [
-      { role: 'assistant', content: "Hello! I'm your DevArena AI Coach. Based on your stats, you're crushing Trees and Graphs, but Dynamic Programming could use some work. How can I help you today?" }
+      { role: 'assistant', content: "Hello! I'm your DevArena AI Coach. I'm analyzing your skills now. How can I help you today?" }
     ];
   });
   
@@ -55,8 +36,31 @@ const AICoach = () => {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+  
   const [loading, setLoading] = useState(false);
   const [input, setInput] = useState('');
+
+  // Fetch Skills
+  useEffect(() => {
+    const fetchSkills = async () => {
+      setSkillLoading(true);
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/users/skills`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error('Failed to fetch skill data');
+        const data = await res.json();
+        setSkillData(data);
+      } catch (err) {
+        console.error(err);
+        setSkillError(err.message);
+      } finally {
+        setSkillLoading(false);
+      }
+    };
+    fetchSkills();
+  }, []);
 
   const handleSend = async (text) => {
     if (!text.trim() || loading) return;
@@ -91,36 +95,85 @@ const AICoach = () => {
     }
   };
 
-  const dynamicRadarData = getDynamicData(user?.username);
-  
-  // Get two weakest subjects for Focus Areas
-  const focusAreas = [...dynamicRadarData].sort((a, b) => a.A - b.A).slice(0, 2);
+  const CustomTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--card-border)', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+          <h4 style={{ fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>{data.subject}</h4>
+          <p style={{ color: 'var(--accent-primary)', fontWeight: 600, fontSize: '0.85rem' }}>Score: {data.A}/100</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '0.25rem' }}>Est. Problems Solved: {data.problems}</p>
+          <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid var(--card-border)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            💡 {data.suggestion}
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
 
   return (
     <div className="dashboard-grid" style={{ height: 'calc(100vh - 4rem)', gridTemplateColumns: '1fr 2fr' }}>
-      {/* Weakness Detection Panel */}
-      <div className="card flex flex-col h-full">
+      {/* Skill Analysis Panel */}
+      <div className="card flex flex-col h-full" style={{ overflowY: 'auto' }}>
         <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1rem' }}>Skill Analysis</h3>
-        <div style={{ flex: 1, minHeight: '300px' }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={dynamicRadarData}>
-              <PolarGrid />
-              <PolarAngleAxis dataKey="subject" tick={{ fontSize: 12 }} />
-              <PolarRadiusAxis angle={30} domain={[0, 100]} />
-              <Radar name="Proficiency" dataKey="A" stroke="var(--accent-primary)" fill="var(--accent-primary)" fillOpacity={0.4} />
-            </RadarChart>
-          </ResponsiveContainer>
-        </div>
-        <div style={{ marginTop: '1rem' }}>
-          <h4 style={{ fontWeight: 600, marginBottom: '0.5rem' }}>Focus Areas</h4>
-          <div className="flex gap-2 flex-wrap">
-            {focusAreas.map(area => (
-              <span key={area.subject} className="badge" style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--accent-danger)' }}>
-                {area.subject} ({area.A}%)
-              </span>
-            ))}
+        
+        {skillLoading ? (
+          <div className="flex flex-col items-center justify-center h-full gap-4">
+            <div className="animate-pulse" style={{ width: 80, height: 80, borderRadius: '50%', background: 'var(--bg-secondary)' }} />
+            <p style={{ color: 'var(--text-muted)' }}>Analyzing your cross-platform history...</p>
           </div>
-        </div>
+        ) : skillError ? (
+          <div className="flex flex-col items-center justify-center h-full text-center p-4">
+            <Activity size={32} color="var(--accent-danger)" style={{ marginBottom: '1rem' }} />
+            <p style={{ color: 'var(--accent-danger)' }}>{skillError}</p>
+          </div>
+        ) : skillData && skillData.radarData ? (
+          <>
+            <div style={{ width: '100%', height: '350px' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={skillData.radarData}>
+                  <PolarGrid stroke="var(--card-border)" />
+                  <PolarAngleAxis dataKey="subject" tick={{ fill: 'var(--text-secondary)', fontSize: 10 }} />
+                  <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Radar name="Proficiency" dataKey="A" stroke="var(--accent-primary)" fill="var(--accent-primary)" fillOpacity={0.4} />
+                </RadarChart>
+              </ResponsiveContainer>
+            </div>
+            
+            {skillData.aiSummary && (
+              <div style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '12px', borderLeft: '4px solid var(--accent-primary)', marginBottom: '1rem' }}>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                  <Sparkles size={14} style={{ display: 'inline', color: 'var(--accent-primary)', marginRight: '4px' }} />
+                  {skillData.aiSummary}
+                </p>
+              </div>
+            )}
+
+            <div style={{ marginBottom: '1rem' }}>
+              <h4 style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Strengths</h4>
+              <div className="flex gap-2 flex-wrap">
+                {skillData.strengths.map(area => (
+                  <span key={area.subject} className="badge" style={{ background: 'rgba(34, 197, 94, 0.1)', color: 'var(--accent-success)', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
+                    {area.subject} ({area.A}%)
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h4 style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Focus Areas</h4>
+              <div className="flex gap-2 flex-wrap">
+                {skillData.focusAreas.map(area => (
+                  <span key={area.subject} className="badge" style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--accent-danger)', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                    {area.subject} ({area.A}%)
+                  </span>
+                ))}
+              </div>
+            </div>
+          </>
+        ) : null}
       </div>
 
       {/* Chat Interface */}

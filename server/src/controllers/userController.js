@@ -138,6 +138,75 @@ const getUserProfile = async (req, res) => {
   }
 };
 
+const getSkillAnalysis = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const skillService = require('../services/skillService');
+    const skillData = skillService.calculateUserSkills(user);
+
+    // If no recent activity and 0 score, return immediately
+    if (skillData.strengths.length === 0) {
+      return res.json({ ...skillData, aiSummary: "Solve more problems across platforms to generate your personalized skill analysis!" });
+    }
+
+    // Check if we have a cached AI summary less than 24 hours old
+    const now = new Date();
+    let aiSummary = "Keep practicing across different topics to strengthen your coding fundamentals!";
+    
+    if (
+      user.aiSkillSummary && 
+      user.aiSkillSummary.lastGeneratedAt && 
+      (now - user.aiSkillSummary.lastGeneratedAt) < 24 * 60 * 60 * 1000 &&
+      user.aiSkillSummary.summary
+    ) {
+      aiSummary = user.aiSkillSummary.summary;
+    } else if (process.env.GROQ_API_KEY) {
+      // Generate a new AI summary using Groq
+      try {
+        const topStr = skillData.strengths.map(s => `${s.subject} (${s.A}%)`).join(', ');
+        const botStr = skillData.focusAreas.map(f => `${f.subject} (${f.A}%)`).join(', ');
+        
+        const prompt = `You are a personalized coding AI Coach.
+User's Strengths: ${topStr}
+User's Weaknesses: ${botStr}
+Write a short, engaging 2-sentence summary (max 30 words) acknowledging their strengths and suggesting they focus on one of their weak areas. Do not use markdown.`;
+
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            messages: [{ role: 'user', content: prompt }]
+          })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          aiSummary = data.choices[0].message.content.replace(/```json/g, '').replace(/```/g, '').trim();
+          
+          user.aiSkillSummary = {
+            summary: aiSummary,
+            lastGeneratedAt: now
+          };
+          await user.save();
+        }
+      } catch (aiErr) {
+        console.error('Groq AI Skill Summary Error:', aiErr.message);
+      }
+    }
+
+    res.json({ ...skillData, aiSummary });
+  } catch (error) {
+    console.error('Skill Analysis Error:', error);
+    res.status(500).json({ message: 'Failed to retrieve skill analysis' });
+  }
+};
+
 module.exports = {
   updateProfile,
   searchUsers,
@@ -147,4 +216,5 @@ module.exports = {
   acceptFriendRequest,
   rejectFriendRequest,
   getUserProfile,
+  getSkillAnalysis,
 };

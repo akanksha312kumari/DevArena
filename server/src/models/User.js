@@ -195,6 +195,10 @@ const userSchema = new mongoose.Schema(
       ],
       lastGeneratedAt: { type: Date, default: null },
     },
+    aiSkillSummary: {
+      summary: { type: String, default: '' },
+      lastGeneratedAt: { type: Date, default: null }
+    }
   },
   { timestamps: true }
 );
