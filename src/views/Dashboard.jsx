@@ -173,15 +173,21 @@ const Dashboard = ({ setActiveTab, setSelectedPotd }) => {
   const recentSubmissions = user?.recentSubmissions || [];
 
   // Activity Line Chart Data
+  const ALL_PLATFORMS = ['leetcode', 'codeforces', 'codechef', 'atcoder', 'gfg', 'hackerrank', 'devarena'];
   const activityMap = {};
-  const platformsSet = new Set();
+
   if (user?.platformStats) {
     Object.entries(user.platformStats).forEach(([platform, pStats]) => {
+      const normalizedPlatform = platform.toLowerCase();
       if (pStats?.heatmapData) {
-        platformsSet.add(platform);
         Object.entries(pStats.heatmapData).forEach(([date, count]) => {
-          if (!activityMap[date]) activityMap[date] = { date };
-          activityMap[date][platform] = count;
+          if (!activityMap[date]) {
+            activityMap[date] = { date };
+            ALL_PLATFORMS.forEach(p => activityMap[date][p] = 0);
+          }
+          if (ALL_PLATFORMS.includes(normalizedPlatform)) {
+            activityMap[date][normalizedPlatform] = count;
+          }
         });
       }
     });
@@ -425,10 +431,19 @@ const Dashboard = ({ setActiveTab, setSelectedPotd }) => {
                   itemStyle={{ color: 'var(--text-primary)' }}
                 />
                 <Legend />
-                {Array.from(platformsSet).map((platform, i) => {
+                {ALL_PLATFORMS.map((platform, i) => {
                   const colors = ['#10B981', '#3B82F6', '#8B5CF6', '#F59E0B', '#EF4444', '#EC4899', '#14B8A6'];
+                  const platformNames = {
+                    leetcode: 'LeetCode',
+                    codeforces: 'Codeforces',
+                    codechef: 'CodeChef',
+                    atcoder: 'AtCoder',
+                    gfg: 'GeeksforGeeks',
+                    hackerrank: 'HackerRank',
+                    devarena: 'DevArena'
+                  };
                   return (
-                    <Line key={platform} name={platform.charAt(0).toUpperCase() + platform.slice(1)} type="monotone" dataKey={platform} stroke={colors[i % colors.length]} strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                    <Line key={platform} name={platformNames[platform]} type="monotone" dataKey={platform} stroke={colors[i % colors.length]} strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                   );
                 })}
               </LineChart>

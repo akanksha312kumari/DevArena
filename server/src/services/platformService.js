@@ -48,9 +48,37 @@ class PlatformService {
     if (!user.platformStats) user.platformStats = {};
     if (!user.platformStats[platform]) user.platformStats[platform] = {};
     
+    let heatmapObj = {};
+    const existingMap = user.platformStats[platform].heatmapData;
+    if (existingMap) {
+      if (existingMap instanceof Map) {
+        existingMap.forEach((val, key) => heatmapObj[key] = val);
+      } else {
+        Object.assign(heatmapObj, existingMap);
+      }
+    }
+
+    if (stats.heatmapData) {
+      Object.assign(heatmapObj, stats.heatmapData);
+    } else if (stats.recentSubmissions && Array.isArray(stats.recentSubmissions)) {
+      const recentDaysMap = {};
+      stats.recentSubmissions.forEach(sub => {
+        if (sub.timestamp) {
+          const dStr = new Date(sub.timestamp).toISOString().split('T')[0];
+          recentDaysMap[dStr] = (recentDaysMap[dStr] || 0) + 1;
+        }
+      });
+      for (const [dStr, count] of Object.entries(recentDaysMap)) {
+        if (!heatmapObj[dStr] || count > heatmapObj[dStr]) {
+          heatmapObj[dStr] = count;
+        }
+      }
+    }
+
     user.platformStats[platform] = {
       ...user.platformStats[platform],
-      ...stats
+      ...stats,
+      heatmapData: heatmapObj
     };
 
     if (!user.lastSynced) user.lastSynced = {};
@@ -93,9 +121,39 @@ class PlatformService {
         const stats = await adapter.fetchStats(handle);
 
         if (!user.platformStats) user.platformStats = {};
+        if (!user.platformStats[platform]) user.platformStats[platform] = {};
+
+        let heatmapObj = {};
+        const existingMap = user.platformStats[platform].heatmapData;
+        if (existingMap) {
+          if (existingMap instanceof Map) {
+            existingMap.forEach((val, key) => heatmapObj[key] = val);
+          } else {
+            Object.assign(heatmapObj, existingMap);
+          }
+        }
+
+        if (stats.heatmapData) {
+          Object.assign(heatmapObj, stats.heatmapData);
+        } else if (stats.recentSubmissions && Array.isArray(stats.recentSubmissions)) {
+          const recentDaysMap = {};
+          stats.recentSubmissions.forEach(sub => {
+            if (sub.timestamp) {
+              const dStr = new Date(sub.timestamp).toISOString().split('T')[0];
+              recentDaysMap[dStr] = (recentDaysMap[dStr] || 0) + 1;
+            }
+          });
+          for (const [dStr, count] of Object.entries(recentDaysMap)) {
+            if (!heatmapObj[dStr] || count > heatmapObj[dStr]) {
+              heatmapObj[dStr] = count;
+            }
+          }
+        }
+
         user.platformStats[platform] = {
           ...user.platformStats[platform],
-          ...stats
+          ...stats,
+          heatmapData: heatmapObj
         };
 
         if (!user.lastSynced) user.lastSynced = {};
