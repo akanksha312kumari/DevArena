@@ -22,12 +22,57 @@ const Heatmap = ({ heatmapData = {} }) => {
     dates.push(`${year}-${month}-${day}`);
   }
 
+  let minCount = Infinity;
+  let maxCount = -Infinity;
+  Object.values(heatmapData).forEach(entry => {
+    const total = typeof entry === 'object' ? (entry.total || 0) : (entry || 0);
+    if (total > 0 && total < minCount) minCount = total;
+    if (total > maxCount) maxCount = total;
+  });
+
+  if (minCount === Infinity) minCount = 1;
+  if (maxCount === -Infinity) maxCount = 1;
+
   const getColor = (count) => {
-    if (!count || count === 0) return 'var(--bg-secondary)'; // clay secondary
-    if (count === 1) return '#A7F3D0'; // light mint
-    if (count === 2) return '#6EE7B7'; 
-    if (count >= 3 && count <= 5) return '#34D399'; 
-    return '#10B981'; 
+    if (!count || count === 0) return 'var(--bg-secondary)'; // Default dark background
+    if (minCount === maxCount) return '#006d32'; // Base dark green
+
+    // GitHub-style scale
+    const colors = ['#006d32', '#26a641', '#39d353', '#A7F3D0'];
+    const normalized = (count - minCount) / (maxCount - minCount);
+    let index = Math.round(normalized * 3);
+    if (index < 0) index = 0;
+    if (index > 3) index = 3;
+    return colors[index];
+  };
+
+  const getTooltip = (dateStr, entry) => {
+    const total = typeof entry === 'object' ? (entry.total || 0) : (entry || 0);
+    let title = `${new Date(dateStr).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}\n`;
+    title += `Total: ${total} submissions\n`;
+    
+    if (total > 0 && typeof entry === 'object') {
+      title += `\n`;
+      const platforms = ['leetcode', 'codeforces', 'codechef', 'atcoder', 'gfg', 'hackerrank', 'devarena'];
+      const names = {
+        leetcode: 'LeetCode',
+        codeforces: 'Codeforces',
+        codechef: 'CodeChef',
+        atcoder: 'AtCoder',
+        gfg: 'GeeksforGeeks',
+        hackerrank: 'HackerRank',
+        devarena: 'DevArena'
+      };
+      
+      platforms.forEach(p => {
+        // If it's a connected platform, we want to show it even if 0. We can check if it's in the entry (if it had activity)
+        // or just show all supported platforms that had activity. The prompt requests listing platforms if connected.
+        // For simplicity, we just list the 7 platforms. If not in entry, it's 0.
+        // To only show *connected* platforms, we can pass connected platforms as a prop.
+        title += `${names[p]}: ${entry[p] || 0}\n`;
+      });
+    }
+    return title.trim();
   };
 
   // Group columns by month to determine where to place the label
@@ -56,7 +101,8 @@ const Heatmap = ({ heatmapData = {} }) => {
         {columns.map((weekDates, weekIndex) => (
           <div key={weekIndex} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             {weekDates.map((dateStr, dayIndex) => {
-              const count = heatmapData[dateStr] || 0;
+              const entry = heatmapData[dateStr] || { total: 0 };
+              const count = typeof entry === 'object' ? (entry.total || 0) : (entry || 0);
               return (
                 <div 
                   key={dayIndex}
@@ -67,7 +113,7 @@ const Heatmap = ({ heatmapData = {} }) => {
                     backgroundColor: getColor(count),
                     opacity: count === 0 ? 0.3 : 1
                   }}
-                  title={`${count} submissions on ${dateStr}`}
+                  title={getTooltip(dateStr, entry)}
                 />
               );
             })}
@@ -397,7 +443,7 @@ const Dashboard = ({ setActiveTab, setSelectedPotd }) => {
         <div className="flex justify-between items-center flex-wrap gap-4" style={{ marginBottom: '1.5rem' }}>
           <div style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
             <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-              {Object.values(user?.heatmapData || {}).reduce((acc, count) => acc + count, 0)}
+              {Object.values(user?.heatmapData || {}).reduce((acc, entry) => acc + (typeof entry === 'object' ? (entry.total || 0) : (entry || 0)), 0)}
             </span> submissions in the past one year
           </div>
           

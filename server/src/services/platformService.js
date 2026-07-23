@@ -226,18 +226,20 @@ class PlatformService {
       }
     }
 
-    // Now aggregate heatmap and recent submissions
     const globalHeatmap = new Map();
     let globalRecent = [];
 
     const userObj = user.toJSON();
 
     for (const [platform, stats] of Object.entries(userObj.platformStats || {})) {
-      if (!stats) continue;
+      if (!stats || !userObj.platforms || !userObj.platforms[platform]) continue;
       
       if (stats.heatmapData) {
         for (const [dateStr, count] of Object.entries(stats.heatmapData)) {
-          globalHeatmap.set(dateStr, (globalHeatmap.get(dateStr) || 0) + count);
+          const entry = globalHeatmap.get(dateStr) || { total: 0 };
+          entry.total += count;
+          entry[platform] = count;
+          globalHeatmap.set(dateStr, entry);
         }
       }
 

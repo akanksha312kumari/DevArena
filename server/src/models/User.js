@@ -164,7 +164,7 @@ const userSchema = new mongoose.Schema(
     ],
     heatmapData: {
       type: Map,
-      of: Number,
+      of: mongoose.Schema.Types.Mixed,
       default: {},
     },
     recentSubmissions: [
