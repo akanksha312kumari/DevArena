@@ -1,4 +1,5 @@
 const { Server } = require('socket.io');
+const jwt = require('jsonwebtoken');
 const roomHandler = require('./roomHandler');
 const duelHandler = require('./duelHandler');
 const User = require('../models/User');
@@ -25,15 +26,35 @@ const initSocket = (server) => {
     }
   };
 
-  io.on('connection', (socket) => {
-    console.log(`User connected: ${socket.id}`);
+  // JWT handshake authentication middleware
+  io.use((socket, next) => {
+    const token = socket.handshake.auth?.token || socket.handshake.query?.token;
+    if (!token) {
+      console.warn(`[Socket Auth Warning] Connection rejected: No token provided (socket: ${socket.id})`);
+      return next(new Error('Authentication error: Token missing'));
+    }
 
-    // Auth integration: clients must emit 'authenticate' with their userId after connecting
-    socket.on('authenticate', (userId) => {
-      connectedUsers.set(socket.id, userId);
-      socket.join(userId); // Join personal room for direct messages/notifications
-      console.log(`Socket ${socket.id} authenticated as User ${userId}`);
-      broadcastOnlineUsers();
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
+      socket.userId = decoded.id;
+      next();
+    } catch (err) {
+      console.warn(`[Socket Auth Warning] Connection rejected: Invalid token (socket: ${socket.id}, error: ${err.message})`);
+      return next(new Error('Authentication error: Invalid token'));
+    }
+  });
+
+  io.on('connection', (socket) => {
+    console.log(`User connected: ${socket.id} (verified user: ${socket.userId})`);
+
+    // Map verified socket.userId
+    connectedUsers.set(socket.id, socket.userId);
+    socket.join(socket.userId);
+    broadcastOnlineUsers();
+
+    // Legacy handler kept for compatibility but no longer updates mapping from client input
+    socket.on('authenticate', (clientUserId) => {
+      console.log(`Socket ${socket.id} (verified: ${socket.userId}) client-sent ID: ${clientUserId}`);
     });
 
     // Delegate events to modular handlers
