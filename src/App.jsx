@@ -53,15 +53,17 @@ const App = () => {
     };
 
     const onOnlineUsersUpdate = (users) => {
-      if (!user) return;
-      const realUsers = users.filter(u => u._id !== user._id);
-      const dummyUsers = [
-        { _id: 'dummy1', username: 'AlexChen_Dev', stats: { rating: 1250 }, profile: { avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=AlexChen' } },
-        { _id: 'dummy2', username: 'SarahCod3s', stats: { rating: 1540 }, profile: { avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah' } },
-        { _id: 'dummy3', username: 'tech_guru99', stats: { rating: 1890 }, profile: { avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=guru' } },
-        { _id: 'dummy4', username: 'byte_ninja', stats: { rating: 1100 }, profile: { avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ninja' } }
-      ];
-      setOnlineUsers([...realUsers, ...dummyUsers]);
+      let merged = [...users.filter(u => u._id !== user?._id)];
+      const isDemo = import.meta.env.VITE_DEMO_MODE === 'true';
+      if (isDemo && merged.length < 5) {
+        merged.push(
+          { _id: 'dummy1', username: 'AlexChen_Dev', stats: { rating: 1250 }, profile: { avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=AlexChen' } },
+          { _id: 'dummy2', username: 'SarahCod3s', stats: { rating: 1420 }, profile: { avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah' } },
+          { _id: 'dummy3', username: 'tech_guru99', stats: { rating: 1100 }, profile: { avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=TechGuru' } },
+          { _id: 'dummy4', username: 'byte_ninja', stats: { rating: 1380 }, profile: { avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ninja' } }
+        );
+      }
+      setOnlineUsers(merged);
     };
 
     const onChallengeReceived = (data) => {

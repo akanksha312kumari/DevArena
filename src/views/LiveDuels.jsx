@@ -19,6 +19,7 @@ const LiveDuels = ({ initialDuelData, onlineUsers = [], completedDuelIds }) => {
   const { user } = useAuth();
   const socket = useSocket();
   const [activeDuel, setActiveDuel] = useState(() => isTerminalDuel(initialDuelData, completedDuelIds) ? null : (initialDuelData || null));
+  const [lastDuelResult, setLastDuelResult] = useState(null);
   const [matchStatus, setMatchStatus] = useState(() => (initialDuelData && !isTerminalDuel(initialDuelData, completedDuelIds)) ? 'starting' : 'lobby');
   const [countdown, setCountdown] = useState(5);
   const [remainingTime, setRemainingTime] = useState(0);
@@ -63,6 +64,16 @@ const LiveDuels = ({ initialDuelData, onlineUsers = [], completedDuelIds }) => {
     setClaimantId(null);
     setShowConfirmModal(false);
   }, []);
+
+  const handleDuelTerminal = useCallback((data) => {
+    const duelId = data?.duelId;
+    if (!duelId) return;
+
+    setLastDuelResult(prev => ({ ...activeDuel, ...data, status: 'finished' }));
+    clearActiveDuel();
+    setMatchStatus('finished');
+    fetchDuelHistory();
+  }, [activeDuel, clearActiveDuel]);
 
   useEffect(() => {
     if (initialDuelData && initialDuelData.id) {
@@ -132,26 +143,14 @@ const LiveDuels = ({ initialDuelData, onlineUsers = [], completedDuelIds }) => {
       alert("Your opponent disputed your victory claim! Keep coding or sort it out in chat.");
     };
 
-    const onDuelFinished = (data) => {
-      setMatchStatus('finished');
-      setShowConfirmModal(false);
-      fetchDuelHistory();
-    };
-
-    const onDuelForfeited = (data) => {
-      setMatchStatus('finished');
-      setShowConfirmModal(false);
-      fetchDuelHistory();
-    };
-
     socket.on('duel_state_update', onDuelStateUpdate);
     socket.on('match_found', onMatchFound);
     socket.on('duel_countdown', onDuelCountdown);
     socket.on('duel_started', onDuelStarted);
     socket.on('opponent_claimed_victory', onOpponentClaimedVictory);
     socket.on('victory_disputed', onVictoryDisputed);
-    socket.on('duel_finished', onDuelFinished);
-    socket.on('duel_forfeited', onDuelForfeited);
+    socket.on('duel_finished', handleDuelTerminal);
+    socket.on('duel_forfeited', handleDuelTerminal);
 
     return () => {
       socket.off('duel_state_update', onDuelStateUpdate);
@@ -160,10 +159,10 @@ const LiveDuels = ({ initialDuelData, onlineUsers = [], completedDuelIds }) => {
       socket.off('duel_started', onDuelStarted);
       socket.off('opponent_claimed_victory', onOpponentClaimedVictory);
       socket.off('victory_disputed', onVictoryDisputed);
-      socket.off('duel_finished', onDuelFinished);
-      socket.off('duel_forfeited', onDuelForfeited);
+      socket.off('duel_finished', handleDuelTerminal);
+      socket.off('duel_forfeited', handleDuelTerminal);
     };
-  }, [socket, activeDuel, user, completedDuelIds]);
+  }, [socket, activeDuel, user, completedDuelIds, handleDuelTerminal]);
 
   const handleVerify = () => {
     // Only used for honor system logic if fallback needed
@@ -208,8 +207,12 @@ const LiveDuels = ({ initialDuelData, onlineUsers = [], completedDuelIds }) => {
     );
   }
 
-  if (matchStatus === 'active' || matchStatus === 'finished') {
+  if (matchStatus === 'active') {
     return <LiveDuelArena duel={activeDuel} socket={socket} user={user} onLeave={handleLeaveDuel} />;
+  }
+
+  if (matchStatus === 'finished' && lastDuelResult) {
+    return <LiveDuelArena duel={lastDuelResult} socket={socket} user={user} onLeave={handleLeaveDuel} />;
   }
 
   // Lobby View

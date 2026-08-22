@@ -1,4 +1,11 @@
 require('dotenv').config({ override: true });
+
+if (!process.env.JWT_SECRET) {
+  console.error("FATAL ERROR: JWT_SECRET is not defined.");
+  process.exit(1);
+}
+
+const http = require('http');
 // Trigger restart for nodemon (updated)
 const express = require('express');
 const cors = require('cors');
@@ -52,7 +59,6 @@ app.use('/api/problems', problemRoutes);
 app.use('/api/duels', duelRoutes);
 app.use('/api/quiz', quizRoutes);
 
-const http = require('http');
 const initSocket = require('./socket');
 
 // Error Handler Middleware

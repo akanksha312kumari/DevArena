@@ -300,6 +300,27 @@ const executeSingleTestCase = async (userCode, testCase, language, problemId, re
   const clientSecret = process.env.JDOODLE_CLIENT_SECRET;
   const apiURL = process.env.JDOODLE_API_URL || 'https://api.jdoodle.com/v1/execute';
   
+  try {
+    const parsedUrl = new URL(apiURL);
+    if (parsedUrl.hostname !== 'api.jdoodle.com') {
+      return {
+        status: 'provider_error',
+        output: 'Invalid JDoodle API configuration',
+        error: 'Host must be api.jdoodle.com',
+        isExecutionSuccess: false,
+        requestId
+      };
+    }
+  } catch (e) {
+    return {
+      status: 'provider_error',
+      output: 'Invalid JDoodle API URL',
+      error: 'Malformed URL',
+      isExecutionSuccess: false,
+      requestId
+    };
+  }
+  
   if (!clientId || !clientSecret || clientId === 'replace_me' || clientSecret === 'replace_me') {
     console.warn(`[JDoodle WARNING] Missing credentials for requestId: ${requestId}`);
     return {
@@ -356,11 +377,16 @@ const executeSingleTestCase = async (userCode, testCase, language, problemId, re
     const output = body.output || '';
     
     // Check if the exit code was nonzero or output suggests runtime/compile error
-    const isSuccess = body.statusCode === 200 || body.statusCode === 0;
+    let isSuccess = body.statusCode === 200 || body.statusCode === 0;
+
+    const lowerOutput = output.toLowerCase();
+    if (isSuccess && (lowerOutput.includes('compile error') || lowerOutput.includes('syntaxerror') || lowerOutput.includes('exception in thread'))) {
+      isSuccess = false;
+    }
 
     let status = 'accepted';
     if (!isSuccess) {
-      status = output.toLowerCase().includes('compile') ? 'compile_error' : 'runtime_error';
+      status = (lowerOutput.includes('compile') || lowerOutput.includes('syntax')) ? 'compile_error' : 'runtime_error';
     }
 
     // Enforce capped output to prevent unbounded data reflection
