@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Flame, Trophy, Activity, Swords, Code, ExternalLink, Calendar, Star, TrendingUp, CheckCircle, XCircle } from 'lucide-react';
+import { Flame, Trophy, Activity, Swords, Code, ExternalLink, Calendar, Star, TrendingUp, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 
 const Heatmap = ({ heatmapData = {} }) => {
-  // Generate a mock or real heatmap (last 52 weeks = 364 days for a full horizontal heatmap)
+  // Generate last 52 weeks = 364 days for a full horizontal heatmap
   const weeks = 52;
   const days = 7;
   const totalDays = weeks * days;
@@ -23,7 +23,7 @@ const Heatmap = ({ heatmapData = {} }) => {
   }
 
   const getColor = (count) => {
-    if (!count || count === 0) return 'var(--bg-secondary)'; // clay secondary
+    if (!count || count === 0) return 'rgba(255, 255, 255, 0.07)'; // Clearly visible empty tile
     if (count === 1) return '#A7F3D0'; // light mint
     if (count === 2) return '#6EE7B7'; 
     if (count >= 3 && count <= 5) return '#34D399'; 
@@ -65,7 +65,9 @@ const Heatmap = ({ heatmapData = {} }) => {
                     height: '12px',
                     borderRadius: '2px',
                     backgroundColor: getColor(count),
-                    opacity: count === 0 ? 0.3 : 1
+                    border: count === 0 ? '1px solid rgba(255, 255, 255, 0.04)' : 'none',
+                    opacity: 1,
+                    transition: 'all 0.15s ease'
                   }}
                   title={`${count} submissions on ${dateStr}`}
                 />
@@ -88,13 +90,82 @@ const Heatmap = ({ heatmapData = {} }) => {
 };
 
 const Dashboard = ({ setActiveTab, setSelectedPotd }) => {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const [potd, setPotd] = useState(null);
   const [potdHistory, setPotdHistory] = useState([]);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [showAllSubmissions, setShowAllSubmissions] = useState(false);
   const [arenaRank, setArenaRank] = useState(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncMsg, setSyncMsg] = useState('');
+
+  const getAggregatedHeatmap = (u) => {
+    if (!u) return {};
+    const heatmap = {};
+
+    // 1. Process u.heatmapData (Map or Object)
+    if (u.heatmapData) {
+      const entries = u.heatmapData instanceof Map
+        ? Array.from(u.heatmapData.entries())
+        : Object.entries(u.heatmapData);
+      entries.forEach(([dateStr, count]) => {
+        const num = typeof count === 'number' ? count : Number(count?.total || count || 0);
+        if (!isNaN(num) && num > 0) heatmap[dateStr] = num;
+      });
+    }
+
+    // 2. Aggregate from u.platformStats if empty or to ensure all platforms are covered
+    if (u.platformStats) {
+      Object.values(u.platformStats).forEach(pStats => {
+        if (pStats && pStats.heatmapData) {
+          const pEntries = pStats.heatmapData instanceof Map
+            ? Array.from(pStats.heatmapData.entries())
+            : Object.entries(pStats.heatmapData);
+          pEntries.forEach(([dateStr, count]) => {
+            const num = typeof count === 'number' ? count : Number(count?.total || count || 0);
+            if (!isNaN(num) && num > 0) {
+              heatmap[dateStr] = Math.max(heatmap[dateStr] || 0, num);
+            }
+          });
+        }
+      });
+    }
+
+    return heatmap;
+  };
+
+  const aggregatedHeatmap = getAggregatedHeatmap(user);
+  const totalHeatmapSubmissions = Object.values(aggregatedHeatmap).reduce((acc, count) => acc + count, 0);
+  const totalActiveDays = Object.keys(aggregatedHeatmap).length;
+
+  const handleSyncAll = async () => {
+    setIsSyncing(true);
+    setSyncMsg('Syncing platforms...');
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/platforms/sync-all`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const meRes = await fetch(`${import.meta.env.VITE_API_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (meRes.ok) {
+          const updatedUser = await meRes.json();
+          setUser(updatedUser);
+        }
+        setSyncMsg('Synced!');
+      } else {
+        setSyncMsg('Sync failed');
+      }
+    } catch (err) {
+      setSyncMsg('Sync error');
+    }
+    setIsSyncing(false);
+    setTimeout(() => setSyncMsg(''), 3000);
+  };
 
   useEffect(() => {
     const fetchRank = async () => {
@@ -391,22 +462,29 @@ const Dashboard = ({ setActiveTab, setSelectedPotd }) => {
         <div className="flex justify-between items-center flex-wrap gap-4" style={{ marginBottom: '1.5rem' }}>
           <div style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
             <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-              {Object.values(user?.heatmapData || {}).reduce((acc, count) => acc + count, 0)}
+              {totalHeatmapSubmissions}
             </span> submissions in the past one year
+            {syncMsg && <span style={{ marginLeft: '1rem', fontSize: '0.875rem', color: 'var(--accent-primary)', fontWeight: 700 }}>{syncMsg}</span>}
           </div>
           
-          <div className="flex gap-4 items-center" style={{ fontSize: '0.875rem', fontWeight: 600 }}>
-            <span style={{ color: 'var(--text-muted)' }}>Total active days: <span style={{ color: 'var(--text-primary)' }}>{Object.keys(user?.heatmapData || {}).length}</span></span>
+          <div className="flex gap-4 items-center flex-wrap" style={{ fontSize: '0.875rem', fontWeight: 600 }}>
+            <span style={{ color: 'var(--text-muted)' }}>Total active days: <span style={{ color: 'var(--text-primary)' }}>{totalActiveDays}</span></span>
             <span style={{ color: 'var(--text-muted)' }}>Current streak: <span style={{ color: 'var(--text-primary)' }}>{stats.dailyStreak || 0}</span></span>
             <span style={{ color: 'var(--text-muted)' }}>Max streak: <span style={{ color: 'var(--text-primary)' }}>{Math.max(stats.maxStreak || 0, stats.dailyStreak || 0)}</span></span>
-            <select className="clay-input" style={{ padding: '0.5rem 1rem', width: 'auto' }}>
-               <option>Current</option>
-            </select>
+            <button 
+              className="clay-btn btn-primary flex items-center gap-2" 
+              style={{ padding: '0.4rem 0.85rem', fontSize: '0.8125rem' }} 
+              onClick={handleSyncAll}
+              disabled={isSyncing}
+              title="Sync all connected platform handles"
+            >
+              <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} /> Sync Platforms
+            </button>
           </div>
         </div>
         
         <div className="clay-recessed" style={{ padding: '1.5rem' }}>
-          <Heatmap heatmapData={user?.heatmapData || {}} />
+          <Heatmap heatmapData={aggregatedHeatmap} />
         </div>
       </div>
 

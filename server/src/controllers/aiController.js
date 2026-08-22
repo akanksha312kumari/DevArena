@@ -1,5 +1,46 @@
 const User = require('../models/User');
 
+const GROQ_MODELS = ['groq/compound', 'qwen/qwen3.6-27b', 'openai/gpt-oss-20b', 'groq/compound-mini'];
+
+const callGroqAPI = async (messages, isJson = false) => {
+  if (!process.env.GROQ_API_KEY) {
+    throw new Error('GROQ_API_KEY missing');
+  }
+
+  let lastError = null;
+  for (const model of GROQ_MODELS) {
+    try {
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: messages
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        let content = data.choices[0]?.message?.content || '';
+        // Clean thinking tags if present
+        content = content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+        return content;
+      } else {
+        const errText = await response.text();
+        console.warn(`Groq API Model ${model} failed (${response.status}):`, errText);
+        lastError = new Error(`Groq API Error (${response.status}): ${errText}`);
+      }
+    } catch (err) {
+      console.warn(`Groq API Model ${model} fetch error:`, err.message);
+      lastError = err;
+    }
+  }
+  throw lastError || new Error('All Groq models failed');
+};
+
 const aiChat = async (req, res) => {
   let user = null;
   try {
@@ -11,16 +52,13 @@ const aiChat = async (req, res) => {
     user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // Try to init Groq API
     if (!process.env.GROQ_API_KEY) {
-      // Fallback for when no API key is provided
       const msg = req.body.messages[req.body.messages.length - 1]?.content.toLowerCase() || '';
       let reply = `I see you have ${user.xp} XP and a ${user.stats.dailyStreak}-day streak! Keep up the good work.`;
       if (msg.includes('hello') || msg.includes('hi')) reply = `Hello ${user.username}! How can I help with your coding today?`;
       return res.json({ content: `[Coach] ${reply} (Note: Add GROQ_API_KEY to server/.env for real AI)` });
     }
 
-    // Construct System Prompt
     const systemInstruction = `You are the DevArena AI Coach. 
     You are advising user ${user.username}.
     Their stats: Level ${user.level}, XP ${user.xp}, Daily Streak: ${user.stats.dailyStreak}.
@@ -32,35 +70,16 @@ const aiChat = async (req, res) => {
     
     CRITICAL RULE: You must ONLY answer questions related to coding, programming, algorithms, computer science, or the user's learning journey on DevArena. If the user asks ANY off-topic questions (e.g., sports, celebrities like "who is messi", politics, movies, etc.), you MUST politely refuse and ask them to please stick to relevant coding and platform topics.`;
 
-    // For simplicity, we send the most recent user message.
     const lastUserMsg = messages[messages.length - 1]?.content || 'Hello';
     
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          { role: 'system', content: systemInstruction },
-          { role: 'user', content: lastUserMsg }
-        ]
-      })
-    });
-    
-    if (!response.ok) {
-        throw new Error(`Groq API Error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    const text = data.choices[0].message.content;
+    const text = await callGroqAPI([
+      { role: 'system', content: systemInstruction },
+      { role: 'user', content: lastUserMsg }
+    ]);
 
     res.json({ content: text });
   } catch (error) {
     console.error('AI Error:', error);
-    // Responsive Fallback if AI fails (e.g. invalid API key, model not found)
     const msgs = req.body.messages || [];
     const msg = msgs[msgs.length - 1]?.content?.toLowerCase() || '';
     let responseText = "Keep practicing those algorithms! Consistency is key.";
@@ -92,7 +111,6 @@ const getLearningPlan = async (req, res) => {
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     const now = new Date();
-    // Check if recommendations exist and are less than 24 hours old
     if (
       user.aiRecommendations &&
       user.aiRecommendations.lastGeneratedAt &&
@@ -117,7 +135,6 @@ const getLearningPlan = async (req, res) => {
       });
     }
 
-    // Construct user stats payload
     const userStats = {
       globalRating: user.stats.globalRating,
       problemsSolved: user.stats.problemsSolved,
@@ -127,7 +144,7 @@ const getLearningPlan = async (req, res) => {
       recentSubmissions: user.recentSubmissions.slice(0, 10).map(s => s.title)
     };
 
-    const prompt = `You are a personalized AI coding coach powered by Llama. 
+    const prompt = `You are a personalized AI coding coach powered by Llama/Groq. 
 Analyze the following user stats: ${JSON.stringify(userStats)}.
 Based on their rating, solved problems, and recent submissions, generate:
 1. A Personalized Learning Roadmap: Rank topics from weakest to strongest. Recommend the next 5 topics to study with estimated difficulty, study time, a short reason, and an array of 3 very brief actionable steps to tackle the topic (e.g. ['Learn theory', 'Solve 5 easy array problems', 'Master two pointers technique']).
@@ -144,33 +161,11 @@ Return ONLY a valid JSON object with this exact structure (no markdown, no backt
 }`;
 
     console.log("Generating Learning Plan using Groq API...");
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          { role: 'user', content: prompt }
-        ]
-      })
-    });
-    
-    if (!response.ok) {
-        throw new Error(`Groq API Error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    let resultText = data.choices[0].message.content;
-    
-    // Clean up any potential markdown formatting from the response
+    let resultText = await callGroqAPI([{ role: 'user', content: prompt }]);
     resultText = resultText.replace(/```json/g, '').replace(/```/g, '').trim();
     
     const parsedData = JSON.parse(resultText);
 
-    // Update user in DB
     user.aiRecommendations = {
       roadmap: parsedData.roadmap,
       dailyChallenges: parsedData.dailyChallenges,
@@ -181,7 +176,6 @@ Return ONLY a valid JSON object with this exact structure (no markdown, no backt
     res.json(parsedData);
   } catch (error) {
     console.error('Learning Plan Error:', error);
-    // Fallback if AI fails or model not found
     return res.json({
       roadmap: [
         { topic: 'Dynamic Programming (Fallback)', difficulty: 'Hard', estimatedTime: '2 hours', reason: 'You have a 30% success rate.', steps: ['Learn memoization', 'Solve 1D DP', 'Solve 2D DP'] },

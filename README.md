@@ -17,6 +17,13 @@ Learning Data Structures and Algorithms (DSA) is overwhelming because the learni
 
 ## 💡 The Solution: DevArena
 DevArena is an all-in-one, unified educational platform that eliminates the need for scattered tools. **It integrates all major coding platforms into one single hub.** By acting as a central dashboard, DevArena brings together practice problems, competitive programming tracking, and—most importantly—uses **Gemma** as a 24/7 personal coding coach. Instead of just giving users the answer, DevArena analyzes their coding statistics across all integrated platforms, identifies their weakest topics, and generates a dynamic, personalized learning roadmap to guide them to success within a single ecosystem.
+---
+
+## ✨ Key Features
+- **Live Coding Duels & Private Rooms:** Compete with friends in real-time coding arenas, manage room members, and view live updates via WebSockets.
+- **Personalized Learning & Skill Analysis:** The Gemma-powered AI Coach generates personalized roadmaps and analyzes your skills based on your past performance.
+- **User Profiles & Social Features:** View detailed profiles, manage your friends list, and climb the global leaderboards.
+- **Unified Coding Hub:** Seamlessly integrates coding practice and tracking in one place.
 
 ---
 
@@ -96,4 +103,6 @@ In our Kaggle notebook, we successfully engineered and proved the following V2 b
 
 <div align="center">
   <p>Built with ❤️ for the GDG TIU Buildathon</p>
+  <h3>Team: CARTOON NETWORK</h3>
+  <p><strong>Members:</strong> Akanksha Kumari and Tushar Vaskar Sharma</p>
 </div>

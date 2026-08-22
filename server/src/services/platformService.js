@@ -178,8 +178,14 @@ class PlatformService {
       if (!stats) continue;
       
       if (stats.heatmapData) {
-        for (const [dateStr, count] of Object.entries(stats.heatmapData)) {
-          globalHeatmap.set(dateStr, (globalHeatmap.get(dateStr) || 0) + count);
+        const hEntries = stats.heatmapData instanceof Map 
+          ? Array.from(stats.heatmapData.entries())
+          : Object.entries(stats.heatmapData || {});
+        for (const [dateStr, count] of hEntries) {
+          const numCount = Number(count);
+          if (!isNaN(numCount) && numCount > 0) {
+            globalHeatmap.set(dateStr, (globalHeatmap.get(dateStr) || 0) + numCount);
+          }
         }
       }
 
