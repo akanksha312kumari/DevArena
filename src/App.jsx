@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from './context/AuthContext';
 import { useSocket } from './context/SocketContext';
 import Sidebar from './components/Sidebar';
@@ -22,6 +22,7 @@ const App = () => {
   const [incomingChallenge, setIncomingChallenge] = useState(null);
   const [message, setMessage] = useState('');
   const [selectedPotd, setSelectedPotd] = useState(null);
+  const completedDuelIds = useRef(new Set());
   const { user, loading } = useAuth();
   const socket = useSocket();
 
@@ -29,24 +30,40 @@ const App = () => {
     if (!socket) return;
 
     const onChallengeAccepted = (data) => {
+      if (data && data.id && completedDuelIds.current.has(data.id)) return;
       setActiveDuelData(data);
       setActiveTab('duels');
     };
 
-    const onDuelFinished = () => {
-      setActiveDuelData(null);
+    const onDuelTerminal = (data) => {
+      if (data && data.duelId) {
+        completedDuelIds.current.add(data.duelId);
+        if (completedDuelIds.current.size > 50) {
+          const iter = completedDuelIds.current.values();
+          completedDuelIds.current.delete(iter.next().value);
+        }
+      }
+      setActiveDuelData(prev => {
+        if (!prev) return null;
+        if (data && data.duelId && prev.id !== data.duelId) {
+          return prev; // Different active duel, don't clear
+        }
+        return null;
+      });
     };
 
     const onOnlineUsersUpdate = (users) => {
-      if (!user) return;
-      const realUsers = users.filter(u => u._id !== user._id);
-      const dummyUsers = [
-        { _id: 'dummy1', username: 'AlexChen_Dev', stats: { rating: 1250 }, profile: { avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=AlexChen' } },
-        { _id: 'dummy2', username: 'SarahCod3s', stats: { rating: 1540 }, profile: { avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah' } },
-        { _id: 'dummy3', username: 'tech_guru99', stats: { rating: 1890 }, profile: { avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=guru' } },
-        { _id: 'dummy4', username: 'byte_ninja', stats: { rating: 1100 }, profile: { avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ninja' } }
-      ];
-      setOnlineUsers([...realUsers, ...dummyUsers]);
+      let merged = [...users.filter(u => u._id !== user?._id)];
+      const isDemo = import.meta.env.VITE_DEMO_MODE === 'true';
+      if (isDemo && merged.length < 5) {
+        merged.push(
+          { _id: 'dummy1', username: 'AlexChen_Dev', stats: { rating: 1250 }, profile: { avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=AlexChen' } },
+          { _id: 'dummy2', username: 'SarahCod3s', stats: { rating: 1420 }, profile: { avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah' } },
+          { _id: 'dummy3', username: 'tech_guru99', stats: { rating: 1100 }, profile: { avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=TechGuru' } },
+          { _id: 'dummy4', username: 'byte_ninja', stats: { rating: 1380 }, profile: { avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ninja' } }
+        );
+      }
+      setOnlineUsers(merged);
     };
 
     const onChallengeReceived = (data) => {
@@ -60,8 +77,8 @@ const App = () => {
 
     socket.on('challenge_accepted', onChallengeAccepted);
     socket.on('group_challenge_started', onChallengeAccepted);
-    socket.on('duel_finished', onDuelFinished);
-    socket.on('duel_forfeited', onDuelFinished);
+    socket.on('duel_finished', onDuelTerminal);
+    socket.on('duel_forfeited', onDuelTerminal);
     socket.on('online_users_update', onOnlineUsersUpdate);
     socket.on('challenge_received', onChallengeReceived);
     socket.on('challenge_rejected', onChallengeRejected);
@@ -69,8 +86,8 @@ const App = () => {
     return () => {
       socket.off('challenge_accepted', onChallengeAccepted);
       socket.off('group_challenge_started', onChallengeAccepted);
-      socket.off('duel_finished', onDuelFinished);
-      socket.off('duel_forfeited', onDuelFinished);
+      socket.off('duel_finished', onDuelTerminal);
+      socket.off('duel_forfeited', onDuelTerminal);
       socket.off('online_users_update', onOnlineUsersUpdate);
       socket.off('challenge_received', onChallengeReceived);
       socket.off('challenge_rejected', onChallengeRejected);
@@ -123,7 +140,7 @@ const App = () => {
           )}
           
           {activeTab === 'dashboard' && <Dashboard setActiveTab={setActiveTab} setSelectedPotd={setSelectedPotd} />}
-          {activeTab === 'duels' && <LiveDuels initialDuelData={activeDuelData} onlineUsers={onlineUsers} />}
+          {activeTab === 'duels' && <LiveDuels initialDuelData={activeDuelData} onlineUsers={onlineUsers} completedDuelIds={completedDuelIds.current} />}
           {activeTab === 'friends' && <Friends onlineUsers={onlineUsers} />}
           {activeTab === 'rooms' && <PrivateRooms />}
           {activeTab === 'coach' && <AICoach />}

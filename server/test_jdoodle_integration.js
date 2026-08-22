@@ -572,6 +572,40 @@ addTest('22. C++ Sample Execution', async () => {
   assert.strictEqual(result.passed, 1);
 });
 
+// 23. HTTP-success but execution-failed
+addTest('23. HTTP-success but execution-failed response fails safely', async () => {
+  mockPostResponse = {
+    data: {
+      output: 'Exception in thread "main" java.lang.NullPointerException',
+      statusCode: 200, // Provider returns 200 HTTP for successful request, but code crashed
+      cpuTime: '0.01',
+      memory: '2000'
+    }
+  };
+  mockPostError = null;
+
+  const result = await judgingService.executeCode('class Solution {}', testProblem.sampleTests, 'java', 'two-sum');
+  assert.strictEqual(result.success, false);
+  assert.strictEqual(result.status, 'runtime_error');
+});
+
+// 24. JDoodle endpoint allowlist rejects unsafe hosts
+addTest('24. JDoodle endpoint allowlist rejects unsafe hosts', async () => {
+  const originalApi = process.env.JDOODLE_API_URL;
+  process.env.JDOODLE_API_URL = 'https://evil-hacker-site.com/execute';
+  
+  mockPostResponse = null;
+  mockPostError = null;
+
+  const result = await judgingService.executeCode('function twoSum() {}', testProblem.sampleTests, 'javascript', 'two-sum');
+  assert.strictEqual(result.success, false);
+  assert.strictEqual(result.status, 'provider_error');
+  assert.ok(result.output.includes('Invalid JDoodle API configuration'));
+  
+  // Restore
+  process.env.JDOODLE_API_URL = originalApi;
+});
+
 // ==========================================
 // TEST EXECUTION RUNNER
 // ==========================================
