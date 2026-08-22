@@ -60,4 +60,9 @@ initSocket(server);
 
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+  if (!process.env.JDOODLE_CLIENT_ID || !process.env.JDOODLE_CLIENT_SECRET) {
+    console.warn('WARNING: JDoodle credentials not configured in environment. Secure execution service will fail closed.');
+  } else {
+    console.log('JDoodle secure code execution service successfully configured.');
+  }
 });

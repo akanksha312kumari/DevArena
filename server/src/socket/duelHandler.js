@@ -10,6 +10,11 @@ const activeDuels = new Map(); // duelId -> duel state
 const socketToDuel = new Map(); // socket.id -> duelId
 let matchmakingQueue = []; // [{ socketId, userId, user: { id, username, avatar, platforms } }]
 
+// Per-user and per-duel limits
+const activeRequests = new Set(); // set of userId
+const lastRequestTime = new Map(); // userId -> timestamp
+const duelsEvaluating = new Set(); // set of duelId
+
 module.exports = (io, socket, connectedUsers) => {
   // --- Challenge Logic ---
   socket.on('send_challenge', (data) => {
@@ -260,68 +265,214 @@ module.exports = (io, socket, connectedUsers) => {
 
   socket.on('run_code', async (data) => {
     const { duelId, code, language = 'javascript' } = data;
-    const duel = activeDuels.get(duelId);
-    const logMsg = `[DEBUG] run_code called with duelId: ${duelId}. duel exists: ${!!duel}, status: ${duel?.status}\n`;
-    require('fs').appendFileSync('debug_duel.log', logMsg);
+    const userId = socket.userId;
     
+    const startTime = Date.now();
+    const requestId = require('crypto').randomBytes(8).toString('hex');
+    
+    // 1. Auth check
+    if (!userId) {
+      console.warn(`[run_code] Request rejected: Unauthenticated socket (socketId: ${socket.id})`);
+      socket.emit('run_code_result', { error: true, output: 'Unauthorized. Please login again.' });
+      return;
+    }
+    
+    // 2. Cooldown check
+    if (lastRequestTime.has(userId) && (startTime - lastRequestTime.get(userId) < 2000)) {
+      socket.emit('run_code_result', { error: true, output: 'Rate limit exceeded: Please wait 2 seconds between runs.' });
+      return;
+    }
+    
+    // 3. Concurrency check
+    if (activeRequests.has(userId)) {
+      socket.emit('run_code_result', { error: true, output: 'Another request is already in progress.' });
+      return;
+    }
+
+    // 4. Duel validation
+    const duel = activeDuels.get(duelId);
     if (!duel || duel.status !== 'active') {
-      require('fs').appendFileSync('debug_duel.log', `[DEBUG] run_code failing because duel not active. Keys in activeDuels: ${Array.from(activeDuels.keys())}\n`);
       socket.emit('run_code_result', { error: true, output: 'Duel is not active or has already ended.' });
       return;
     }
 
-    // Run against sample tests
-    const result = await judgingService.executeCode(code, duel.problem.sampleTests, language);
-    socket.emit('run_code_result', result);
+    // 5. Participant check
+    const player = duel.players.find(p => p.id === userId);
+    if (!player) {
+      console.warn(`[run_code] Security Alert: User ${userId} tried to execute code in duel ${duelId} but is not a participant.`);
+      socket.emit('run_code_result', { error: true, output: 'Access denied: You are not a participant in this duel.' });
+      return;
+    }
+
+    // 6. Language allowlist validation
+    const { LANGUAGE_MAP } = require('../services/jdoodleService');
+    if (!LANGUAGE_MAP[language]) {
+      socket.emit('run_code_result', { error: true, output: `Unsupported language: ${language}` });
+      return;
+    }
+
+    // 7. Input size validation
+    if (!code || code.length > 50000) {
+      socket.emit('run_code_result', { error: true, output: 'Source code exceeds maximum length of 50KB.' });
+      return;
+    }
+    
+    if (!duel.problem || !Array.isArray(duel.problem.sampleTests) || duel.problem.sampleTests.length === 0) {
+      socket.emit('run_code_result', { error: true, output: 'Internal error: Missing problem test cases.' });
+      return;
+    }
+
+    // Set request in progress
+    activeRequests.add(userId);
+    lastRequestTime.set(userId, startTime);
+
+    try {
+      // Safe logging (no source code, secrets, or stdin logged)
+      console.log(`[run_code] Request ${requestId}: User ${userId}, Duel ${duelId}, Language ${language}`);
+      
+      const result = await judgingService.executeCode(code, duel.problem.sampleTests, language, duel.problem.id || duel.problem.questionId);
+      
+      const duration = Date.now() - startTime;
+      console.log(`[run_code] Success ${requestId}: Status ${result.status || 'success'}, Duration ${duration}ms`);
+      
+      socket.emit('run_code_result', result);
+    } catch (err) {
+      const duration = Date.now() - startTime;
+      console.error(`[run_code] Error ${requestId}: Category server_error, Duration ${duration}ms, Message: ${err.message}`);
+      socket.emit('run_code_result', { error: true, output: 'Judgement system encountered an unexpected server error.', status: 'provider_error' });
+    } finally {
+      activeRequests.delete(userId);
+    }
   });
 
   socket.on('verify_submission', async (data) => {
     const { duelId, code, language = 'javascript' } = data;
-    const userId = connectedUsers.get(socket.id);
-    const duel = activeDuels.get(duelId);
+    const userId = socket.userId;
     
-    console.log(`[DEBUG] verify_submission called with duelId: ${duelId}. duel exists: ${!!duel}, status: ${duel?.status}`);
+    const startTime = Date.now();
+    const requestId = require('crypto').randomBytes(8).toString('hex');
+    
+    // 1. Auth check
+    if (!userId) {
+      console.warn(`[verify_submission] Request rejected: Unauthenticated socket (socketId: ${socket.id})`);
+      socket.emit('submission_failed', { message: 'Unauthorized. Please login again.' });
+      return;
+    }
+    
+    // 2. Duel validation
+    const duel = activeDuels.get(duelId);
     if (!duel || duel.status !== 'active') {
       socket.emit('submission_failed', { message: 'Duel is not active or has already ended.' });
       return;
     }
 
+    // 3. Participant check
     const playerIndex = duel.players.findIndex(p => p.id === userId);
-    if (playerIndex === -1) return;
-    
-    // Update player status in duel state
-    duel.players[playerIndex].status = 'Evaluating...';
-    io.to(duelId).emit('player_status_update', { userId, status: 'Evaluating...' });
-    
-    // Run against hidden tests
-    const result = await judgingService.executeCode(code, duel.problem.hiddenTests, language);
-    
-    if (result.passed > duel.players[playerIndex].maxPassed) {
-      duel.players[playerIndex].maxPassed = result.passed;
+    if (playerIndex === -1) {
+      console.warn(`[verify_submission] Security Alert: User ${userId} tried to verify code in duel ${duelId} but is not a participant.`);
+      socket.emit('submission_failed', { message: 'Access denied: You are not a participant in this duel.' });
+      return;
     }
 
-    if (result.success) {
-      // 100% passed! Declare winner immediately
-      handleDuelWin(io, duel, userId);
-    } else {
-      duel.players[playerIndex].status = 'Failed';
-      io.to(duelId).emit('player_status_update', { userId, status: 'Failed' });
-      socket.emit('submission_failed', { 
-        message: `Failed on test cases. Passed ${result.passed}/${result.total}.`,
-        output: result.output
-      });
+    // 4. Concurrency control (per-duel)
+    if (duelsEvaluating.has(duelId)) {
+      socket.emit('submission_failed', { message: 'Evaluation in progress for this duel. Please wait.' });
+      return;
+    }
+
+    // 5. Concurrency check (per-user)
+    if (activeRequests.has(userId)) {
+      socket.emit('submission_failed', { message: 'Another request is already in progress.' });
+      return;
+    }
+
+    // 6. Cooldown check
+    if (lastRequestTime.has(userId) && (startTime - lastRequestTime.get(userId) < 2000)) {
+      socket.emit('submission_failed', { message: 'Rate limit exceeded: Please wait 2 seconds between submissions.' });
+      return;
+    }
+
+    // 7. Language allowlist validation
+    const { LANGUAGE_MAP } = require('../services/jdoodleService');
+    if (!LANGUAGE_MAP[language]) {
+      socket.emit('submission_failed', { message: `Unsupported language: ${language}` });
+      return;
+    }
+
+    // 8. Input size validation
+    if (!code || code.length > 50000) {
+      socket.emit('submission_failed', { message: 'Source code exceeds maximum length of 50KB.' });
+      return;
+    }
+    
+    if (!duel.problem || !Array.isArray(duel.problem.hiddenTests) || duel.problem.hiddenTests.length === 0) {
+      socket.emit('submission_failed', { message: 'Internal error: Missing problem test cases.' });
+      return;
+    }
+
+    // Set evaluating states
+    activeRequests.add(userId);
+    lastRequestTime.set(userId, startTime);
+    duelsEvaluating.add(duelId);
+    
+    duel.players[playerIndex].status = 'Evaluating...';
+    io.to(duelId).emit('player_status_update', { userId, status: 'Evaluating...' });
+
+    try {
+      console.log(`[verify_submission] Request ${requestId}: User ${userId}, Duel ${duelId}, Language ${language}`);
+      
+      const result = await judgingService.executeCode(code, duel.problem.hiddenTests, language, duel.problem.id || duel.problem.questionId);
+      
+      const duration = Date.now() - startTime;
+      console.log(`[verify_submission] Success ${requestId}: Status ${result.status || 'success'}, Duration ${duration}ms`);
+      
+      // Update maxPassed score based on verification results
+      if (result.passed > duel.players[playerIndex].maxPassed) {
+        duel.players[playerIndex].maxPassed = result.passed;
+      }
+
+      // Re-fetch duel in case state changed during network await
+      const latestDuel = activeDuels.get(duelId);
+      if (!latestDuel || latestDuel.status !== 'active') {
+        socket.emit('submission_failed', { message: 'Duel ended while processing submission.' });
+        return;
+      }
+
+      if (result.success) {
+        // Double-finish guard: ensure winner is only handled if the duel is still active
+        handleDuelWin(io, latestDuel, userId);
+      } else {
+        latestDuel.players[playerIndex].status = 'Failed';
+        io.to(duelId).emit('player_status_update', { userId, status: 'Failed' });
+        socket.emit('submission_failed', { 
+          message: `Failed on test cases. Passed ${result.passed}/${result.total}.`,
+          output: result.output,
+          status: result.status
+        });
+      }
+    } catch (err) {
+      const duration = Date.now() - startTime;
+      console.error(`[verify_submission] Error ${requestId}: Category server_error, Duration ${duration}ms, Message: ${err.message}`);
+      
+      const latestDuel = activeDuels.get(duelId);
+      if (latestDuel && latestDuel.players[playerIndex]) {
+        latestDuel.players[playerIndex].status = 'Failed';
+        io.to(duelId).emit('player_status_update', { userId, status: 'Failed' });
+      }
+      socket.emit('submission_failed', { message: 'Judgement system encountered an unexpected server error.', status: 'provider_error' });
+    } finally {
+      activeRequests.delete(userId);
+      duelsEvaluating.delete(duelId);
     }
   });
 
   socket.on('confirm_opponent_victory', (data) => {
-    const { duelId, winnerId } = data;
-    const duel = activeDuels.get(duelId);
-    if (!duel || duel.status !== 'active') return;
-    
-    handleDuelWin(io, duel, winnerId);
+    // Deprecated/Disabled client-controlled victory path
+    console.warn(`[confirm_opponent_victory] Ignored client-controlled victory path event from socket ${socket.id}`);
   });
   
   socket.on('dispute_victory', (data) => {
+    // Non-authoritative event for disputing
     const { duelId, claimantId } = data;
     io.to(duelId).emit('victory_disputed', { claimantId });
   });

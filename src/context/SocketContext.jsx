@@ -20,8 +20,12 @@ export const SocketProvider = ({ children }) => {
       return;
     }
 
+    const token = localStorage.getItem('token');
     const newSocket = io(import.meta.env.VITE_API_URL.replace('/api', ''), {
       transports: ['websocket'],
+      auth: {
+        token
+      }
     });
 
     newSocket.on('connect', () => {

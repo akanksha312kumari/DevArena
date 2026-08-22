@@ -66,67 +66,88 @@ const getPOTDHistory = async (req, res) => {
 
 const solvePOTD = async (req, res) => {
   try {
-    const { problemId, code, language } = req.body;
+    const { problemId, code, language = 'javascript' } = req.body;
+    
+    // 1. Inputs validation
+    if (!problemId || !code) {
+      return res.status(400).json({ message: 'Missing problemId or code' });
+    }
+    
+    // 2. Language allowlist validation
+    const { LANGUAGE_MAP } = require('../services/jdoodleService');
+    if (!LANGUAGE_MAP[language]) {
+      return res.status(400).json({ message: `Unsupported language: ${language}` });
+    }
+    
+    // 3. Input size validation
+    if (code.length > 50000) {
+      return res.status(400).json({ message: 'Source code exceeds maximum length of 50KB.' });
+    }
+    
     const problem = await Problem.findById(problemId);
     if (!problem) return res.status(404).json({ message: 'Problem not found' });
     
-    // Execute against hidden tests
-    const result = await judgingService.executeCode(code, problem.hiddenTests, language);
+    // 4. Already solved / duplicate check (Idempotency)
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    
+    if (user.solvedPotds.includes(problemId)) {
+      return res.status(400).json({ message: 'You have already solved this Problem of the Day!' });
+    }
+    
+    // 5. Secure judging against hidden tests
+    const result = await judgingService.executeCode(code, problem.hiddenTests, language, problem.id || problem.questionId);
     
     if (result.success) {
-      // Mark as solved for user and log activity
-      const user = await User.findById(req.user._id);
-      if (user && !user.solvedPotds.includes(problemId)) {
-        user.solvedPotds.push(problemId);
-        
-        if (!user.platformStats) user.platformStats = {};
-        if (!user.platformStats.devarena) {
-          user.platformStats.devarena = { heatmapData: new Map(), recentSubmissions: [] };
-        }
-        
-        const dateStr = new Date().toISOString().split('T')[0];
-        const daStats = user.platformStats.devarena;
-        
-        if (!daStats.heatmapData) daStats.heatmapData = new Map();
-        daStats.heatmapData.set(dateStr, (daStats.heatmapData.get(dateStr) || 0) + 1);
-        
-        daStats.recentSubmissions.unshift({
-          title: problem.title,
-          platform: 'devarena',
-          timestamp: new Date(),
-          url: `/potd`
-        });
-        
-        if (daStats.recentSubmissions.length > 20) {
-          daStats.recentSubmissions = daStats.recentSubmissions.slice(0, 20);
-        }
-        
-        if (!daStats.problemsSolved) {
-          daStats.problemsSolved = { easy: 0, medium: 0, hard: 0, total: 0 };
-        }
-        daStats.problemsSolved.total += 1;
-        const diffLower = (problem.difficulty || 'Easy').toLowerCase();
-        if (daStats.problemsSolved[diffLower] !== undefined) {
-          daStats.problemsSolved[diffLower] += 1;
-        }
-        
-        user.markModified('platformStats.devarena');
-        
-        // Use gamification service for XP
-        const gamificationService = require('../services/gamificationService');
-        gamificationService.awardXP(user, 10, 'Solved Problem of the Day');
-        
-        // Recalculate global heatmap and overall universal streak
-        const platformService = require('../services/platformService');
-        platformService.recalculateGlobalStats(user);
-        
-        await user.save();
+      // Mark as solved and reward XP
+      user.solvedPotds.push(problemId);
+      
+      if (!user.platformStats) user.platformStats = {};
+      if (!user.platformStats.devarena) {
+        user.platformStats.devarena = { heatmapData: new Map(), recentSubmissions: [] };
       }
+      
+      const dateStr = new Date().toISOString().split('T')[0];
+      const daStats = user.platformStats.devarena;
+      
+      if (!daStats.heatmapData) daStats.heatmapData = new Map();
+      daStats.heatmapData.set(dateStr, (daStats.heatmapData.get(dateStr) || 0) + 1);
+      
+      daStats.recentSubmissions.unshift({
+        title: problem.title,
+        platform: 'devarena',
+        timestamp: new Date(),
+        url: `/potd`
+      });
+      
+      if (daStats.recentSubmissions.length > 20) {
+        daStats.recentSubmissions = daStats.recentSubmissions.slice(0, 20);
+      }
+      
+      if (!daStats.problemsSolved) {
+        daStats.problemsSolved = { easy: 0, medium: 0, hard: 0, total: 0 };
+      }
+      daStats.problemsSolved.total += 1;
+      const diffLower = (problem.difficulty || 'Easy').toLowerCase();
+      if (daStats.problemsSolved[diffLower] !== undefined) {
+        daStats.problemsSolved[diffLower] += 1;
+      }
+      
+      user.markModified('platformStats.devarena');
+      
+      const gamificationService = require('../services/gamificationService');
+      gamificationService.awardXP(user, 10, 'Solved Problem of the Day');
+      
+      const platformService = require('../services/platformService');
+      platformService.recalculateGlobalStats(user);
+      
+      await user.save();
     }
     
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('[solvePOTD] Error:', error.message);
+    res.status(500).json({ message: 'Internal server error while evaluating POTD submission.' });
   }
 };
 
