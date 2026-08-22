@@ -1,13 +1,8 @@
-<div align="center">
-  <img src="https://img.shields.io/badge/Gemma_4-Ready-8b5cf6?style=for-the-badge&logo=google" alt="Gemma 4" />
-  <img src="https://img.shields.io/badge/Hackathon-GDG_TIU-4285F4?style=for-the-badge" alt="GDG TIU Hackathon" />
-  <img src="https://img.shields.io/badge/Track-AI_For_Education-34A853?style=for-the-badge" alt="AI for Education" />
-  
-  <br />
-  
+
+<div>  
   <h1>🚀 DevArena</h1>
   <p><strong>The Next-Generation AI-Powered Coding Platform & Personalized Learning Coach</strong></p>
-  <p><i>Official Submission for the Google DeepMind "Build with Gemma" Hackathon 2026</i></p>
+  <p><i>Official Submission for the "VibeForge 1.0" Hackathon 2026</i></p>
 </div>
 
 <hr />
@@ -102,7 +97,7 @@ In our Kaggle notebook, we successfully engineered and proved the following V2 b
 ---
 
 <div align="center">
-  <p>Built with ❤️ for the GDG TIU Buildathon</p>
-  <h3>Team: CARTOON NETWORK</h3>
+  <p>Built with ❤️ for VIBEFORGE 1.0</p>
+  <h3>Team: NEURAL PAIR</h3>
   <p><strong>Members:</strong> Akanksha Kumari and Tushar Vaskar Sharma</p>
 </div>
