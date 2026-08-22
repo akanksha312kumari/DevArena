@@ -195,6 +195,22 @@ const userSchema = new mongoose.Schema(
       ],
       lastGeneratedAt: { type: Date, default: null },
     },
+    skillMastery: {
+      type: Map,
+      of: {
+        masteryLevel: { type: Number, default: 0 },
+        quizzesTaken: { type: Number, default: 0 },
+        points: { type: Number, default: 0 },
+        lastUpdated: { type: Date, default: Date.now }
+      },
+      default: {},
+    },
+    quizStats: {
+      totalQuizzes: { type: Number, default: 0 },
+      totalQuestionsAnswered: { type: Number, default: 0 },
+      totalPointsEarned: { type: Number, default: 0 },
+      averageScore: { type: Number, default: 0 },
+    },
   },
   { timestamps: true }
 );

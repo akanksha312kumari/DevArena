@@ -56,6 +56,15 @@ body {
   padding: 0;
 }
 
+/* Invisible Scrollbar Utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 /* Claymorphism Utilities */
 .card, .clay-card {
   background: var(--card-bg);
