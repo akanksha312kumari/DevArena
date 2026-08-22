@@ -312,25 +312,28 @@ const evaluateDefense = async (req, res) => {
     currentQ.studentDefenseSubmittedAt = new Date();
 
     // Call Groq AI to evaluate initial answer + defense
-    const prompt = `You are the DevArena AI Coding Coach evaluating a student's Socratic defense.
+    const prompt = `You are a strict, harsh, and uncompromising DevArena AI Coding Coach evaluating a student's Socratic defense.
+
 Topic: "${attempt.topic}"
 Original Question: "${currentQ.questionText}"
 Student's Initial Answer: "${currentQ.studentAnswer}"
 Socratic Probing Challenge: "${currentQ.socraticChallenge}"
 Student's Defense / Explanation: "${currentQ.studentDefense}"
 
-Evaluate the student's overall performance.
-Score initialAnswerScore (0-100) and defenseScore (0-100).
-List any specific misconceptions identified (array of strings).
-Provide concise, encouraging feedback and an assessment of their conceptual understanding.
+STRICT EVALUATION INSTRUCTIONS:
+1. GROUND EVERYTHING IN THE STUDENT'S EXACT SUBMITTED TEXT. Evaluate ONLY what the student actually wrote in their initial answer and defense.
+2. BE HARSH, BLUNT, AND DIRECT. DO NOT use soft language, praise, or diplomatic fluff (NEVER say "Good job", "Great effort", "Nice try", "To improve, consider", or "Keep practicing").
+3. CRITIQUE THE DEFENSE DIRECTLY. If the student failed to answer the probing challenge, dodged the question, hand-waved, or gave a surface-level response, call out their exact failure harshly and explain why their logic falls apart.
+4. DO NOT invent claims or list generic textbook points. Every misconception and feedback point MUST directly reference the student's submitted text and identify their specific conceptual flaws, gaps, or hand-waving.
+5. If defenseScore is low (<50), explicitly explain why their defense failed to prove their understanding and why hand-waving is unacceptable.
 
 Return ONLY a valid JSON object with exact keys:
 {
   "initialAnswerScore": number (0-100),
   "defenseScore": number (0-100),
-  "understanding": "string",
-  "misconceptions": ["string"],
-  "feedback": "string"
+  "understanding": "string (A sharp, blunt, 1-2 sentence assessment of their actual demonstrated understanding vs hand-waving)",
+  "misconceptions": ["string (Direct, harsh statements of flaws/gaps in their submitted text)"],
+  "feedback": "string (Harsh, direct, technical critique referencing their exact response and calling out missing logic, hand-waving, or wrong assumptions)"
 }`;
 
     const aiRaw = await callGroqAi([{ role: 'user', content: prompt }]);

@@ -261,10 +261,10 @@ const PersonalizedLearning = () => {
           <p style={{ color: 'var(--text-secondary)' }}>{planError}</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', width: '100%' }}>
+        <div className="learning-path-grid-container">
           
           {/* Roadmap Section (Bigger & Wider Layout) */}
-          <div className="clay-card" style={{ flex: '1.8 1 480px', display: 'flex', flexDirection: 'column', maxHeight: '660px' }}>
+          <div className="clay-card" style={{ display: 'flex', flexDirection: 'column', maxHeight: '660px' }}>
             <div className="flex items-center justify-between" style={{ marginBottom: '1rem', flexShrink: 0 }}>
               <div className="flex items-center gap-2">
                 <Target size={22} style={{ color: 'var(--accent-primary)' }} />
@@ -359,7 +359,7 @@ const PersonalizedLearning = () => {
           </div>
 
           {/* Socratic Quiz Dedicated Workspace (Shorter & Sleeker Layout) */}
-          <div className="clay-card" style={{ flex: '1 1 320px', display: 'flex', flexDirection: 'column', gap: '1.25rem', maxHeight: '540px' }}>
+          <div className="clay-card" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', maxHeight: '560px' }}>
              
              {/* Quiz Header */}
              <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: 'var(--card-border)', flexShrink: 0 }}>

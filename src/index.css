@@ -270,3 +270,18 @@ body {
 .recent-activity {
   grid-column: span 3;
 }
+
+/* Learning Path Responsive Grid */
+.learning-path-grid-container {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 2rem;
+  width: 100%;
+}
+
+@media (max-width: 900px) {
+  .learning-path-grid-container {
+    grid-template-columns: 1fr !important;
+  }
+}
