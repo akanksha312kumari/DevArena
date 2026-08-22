@@ -1,15 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Swords, Clock, AlertTriangle, CheckCircle, Code2, Trophy, XCircle, Minus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import LiveDuelArena from './LiveDuelArena';
 import UserProfileModal from '../components/UserProfileModal';
 
-const LiveDuels = ({ initialDuelData, onlineUsers = [] }) => {
+const TERMINAL_DUEL_STATUSES = new Set(['finished', 'ended', 'forfeited', 'time_up']);
+
+const isTerminalDuel = (duel, completedDuelIds) => {
+  if (!duel) return false;
+  if (completedDuelIds && duel.id && completedDuelIds.has(duel.id)) return true;
+  if (TERMINAL_DUEL_STATUSES.has(duel.status)) return true;
+  if (duel.endTime && Number(duel.endTime) <= Date.now()) return true;
+  return false;
+};
+
+const LiveDuels = ({ initialDuelData, onlineUsers = [], completedDuelIds }) => {
   const { user } = useAuth();
   const socket = useSocket();
-  const [activeDuel, setActiveDuel] = useState(initialDuelData || null);
-  const [matchStatus, setMatchStatus] = useState(initialDuelData ? 'starting' : 'lobby'); // lobby, starting, active, finished
+  const [activeDuel, setActiveDuel] = useState(() => isTerminalDuel(initialDuelData, completedDuelIds) ? null : (initialDuelData || null));
+  const [matchStatus, setMatchStatus] = useState(() => (initialDuelData && !isTerminalDuel(initialDuelData, completedDuelIds)) ? 'starting' : 'lobby');
   const [countdown, setCountdown] = useState(5);
   const [remainingTime, setRemainingTime] = useState(0);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -44,76 +54,116 @@ const LiveDuels = ({ initialDuelData, onlineUsers = [] }) => {
     fetchDuelHistory();
   }, []);
   
+  const clearActiveDuel = useCallback(() => {
+    setActiveDuel(null);
+    setMatchStatus('lobby');
+    setCountdown(5);
+    setRemainingTime(0);
+    setHasInitializedDuel(false);
+    setClaimantId(null);
+    setShowConfirmModal(false);
+  }, []);
+
   useEffect(() => {
-    if (initialDuelData && !hasInitializedDuel) {
-      if (socket) socket.emit('join_duel', initialDuelData.id);
+    if (initialDuelData && initialDuelData.id) {
+      if (isTerminalDuel(initialDuelData, completedDuelIds)) {
+        return;
+      }
       
-      setActiveDuel(initialDuelData);
-      setMatchStatus('starting');
-      setHasInitializedDuel(true);
+      if (activeDuel && activeDuel.id !== initialDuelData.id && !isTerminalDuel(activeDuel, completedDuelIds)) {
+        return; // Don't interrupt a genuinely different active duel
+      }
+
+      if (!hasInitializedDuel || (activeDuel && activeDuel.id !== initialDuelData.id)) {
+        if (socket) socket.emit('join_duel', initialDuelData.id);
+        setActiveDuel(initialDuelData);
+        setMatchStatus('starting');
+        setHasInitializedDuel(true);
+      }
+    } else if (!initialDuelData) {
+      if (!activeDuel || isTerminalDuel(activeDuel, completedDuelIds)) {
+        if (matchStatus !== 'finished') {
+          // Stay in lobby unless user is on the finished screen
+          setMatchStatus('lobby');
+        }
+      }
     }
-  }, [initialDuelData, socket, hasInitializedDuel]);
+  }, [initialDuelData, socket, hasInitializedDuel, activeDuel, completedDuelIds, matchStatus]);
 
   useEffect(() => {
     if (!socket) return;
 
-    socket.on('duel_state_update', (data) => {
+    const onDuelStateUpdate = (data) => {
+      if (isTerminalDuel(data, completedDuelIds)) return;
       setActiveDuel(data);
       setMatchStatus(data.status);
       if (data.status === 'active') {
         setRemainingTime(Math.max(0, Math.floor((data.endTime - Date.now()) / 1000)));
       }
-    });
+    };
 
-    socket.on('match_found', (data) => {
+    const onMatchFound = (data) => {
+      if (isTerminalDuel(data, completedDuelIds)) return;
       setIsSearching(false);
       socket.emit('join_duel', data.id);
       setActiveDuel(data);
       setMatchStatus('starting');
-    });
+    };
 
-    socket.on('duel_countdown', (data) => {
+    const onDuelCountdown = (data) => {
       setCountdown(data.count);
-    });
+    };
 
-    socket.on('duel_started', (data) => {
+    const onDuelStarted = (data) => {
       setMatchStatus('active');
       setActiveDuel(prev => {
         if (!prev) return prev;
-        // Use client's Date.now() to avoid server/client time desync issues
         const clientEndTime = Date.now() + (prev.timeLimit * 60 * 1000);
         return { ...prev, status: 'active', endTime: clientEndTime };
       });
-    });
+    };
 
-    socket.on('opponent_claimed_victory', (data) => {
+    const onOpponentClaimedVictory = (data) => {
       setClaimantId(data.userId);
       setShowConfirmModal(true);
-    });
+    };
 
-    socket.on('victory_disputed', () => {
+    const onVictoryDisputed = () => {
       alert("Your opponent disputed your victory claim! Keep coding or sort it out in chat.");
-    });
+    };
 
-    socket.on('duel_finished', (data) => {
+    const onDuelFinished = (data) => {
       setMatchStatus('finished');
       setShowConfirmModal(false);
-      if (data.winner === user._id) {
-        // Handled by Arena UI, but we refresh history
-      }
       fetchDuelHistory();
-    });
+    };
+
+    const onDuelForfeited = (data) => {
+      setMatchStatus('finished');
+      setShowConfirmModal(false);
+      fetchDuelHistory();
+    };
+
+    socket.on('duel_state_update', onDuelStateUpdate);
+    socket.on('match_found', onMatchFound);
+    socket.on('duel_countdown', onDuelCountdown);
+    socket.on('duel_started', onDuelStarted);
+    socket.on('opponent_claimed_victory', onOpponentClaimedVictory);
+    socket.on('victory_disputed', onVictoryDisputed);
+    socket.on('duel_finished', onDuelFinished);
+    socket.on('duel_forfeited', onDuelForfeited);
 
     return () => {
-      socket.off('duel_state_update');
-      socket.off('match_found');
-      socket.off('duel_countdown');
-      socket.off('duel_started');
-      socket.off('opponent_claimed_victory');
-      socket.off('victory_disputed');
-      socket.off('duel_finished');
+      socket.off('duel_state_update', onDuelStateUpdate);
+      socket.off('match_found', onMatchFound);
+      socket.off('duel_countdown', onDuelCountdown);
+      socket.off('duel_started', onDuelStarted);
+      socket.off('opponent_claimed_victory', onOpponentClaimedVictory);
+      socket.off('victory_disputed', onVictoryDisputed);
+      socket.off('duel_finished', onDuelFinished);
+      socket.off('duel_forfeited', onDuelForfeited);
     };
-  }, [socket, activeDuel, user]);
+  }, [socket, activeDuel, user, completedDuelIds]);
 
   const handleVerify = () => {
     // Only used for honor system logic if fallback needed
@@ -136,8 +186,7 @@ const LiveDuels = ({ initialDuelData, onlineUsers = [] }) => {
   };
 
   const handleLeaveDuel = () => {
-    setMatchStatus('lobby');
-    setActiveDuel(null);
+    clearActiveDuel();
   };
 
   const handleFindRandomMatch = () => {

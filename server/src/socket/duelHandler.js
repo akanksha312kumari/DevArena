@@ -543,6 +543,10 @@ const handleDuelWin = (io, duel, winnerId) => {
   duel.status = 'finished';
   duel.winner = winnerId;
   
+  // Clear any existing timers
+  if (duel.countdownInterval) clearInterval(duel.countdownInterval);
+  if (duel.matchTimeout) clearTimeout(duel.matchTimeout);
+  
   // Persist to MongoDB
   Duel.create({
     players: duel.players.map(p => p.id),
@@ -597,6 +601,7 @@ const handleDuelWin = (io, duel, winnerId) => {
   });
   
   io.to(duel.id).emit('duel_finished', {
+    duelId: duel.id,
     winner: winnerId,
     reason: 'solution_accepted'
   });
@@ -670,6 +675,7 @@ const handleDuelForfeit = (io, duel, forfeitingUserId) => {
   }).catch(err => console.error('Error updating loser stats:', err));
   
   io.to(duel.id).emit('duel_forfeited', {
+    duelId: duel.id,
     winner: winnerId,
     reason: 'Opponent Forfeited'
   });
@@ -762,7 +768,7 @@ function startDuelTimer(io, duelId) {
                 }).catch(e => console.error('Error updating draw stats:', e));
               });
 
-              io.to(duelId).emit('duel_finished', { winner: null, reason: 'time_up' });
+              io.to(duelId).emit('duel_finished', { duelId, winner: null, reason: 'time_up' });
               activeDuels.delete(duelId);
             }
           }
