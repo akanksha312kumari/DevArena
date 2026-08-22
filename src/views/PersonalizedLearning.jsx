@@ -34,7 +34,7 @@ const PersonalizedLearning = () => {
     setPlanError(null);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_BASE_URL}/api/ai/learning-plan`, {
+      const res = await fetch(`${API_BASE_URL}/ai/learning-plan`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) throw new Error('Failed to generate learning plan.');
@@ -56,8 +56,8 @@ const PersonalizedLearning = () => {
     try {
       const token = localStorage.getItem('token');
       const [statsRes, historyRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/quiz/stats`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`${API_BASE_URL}/api/quiz/history`, { headers: { 'Authorization': `Bearer ${token}` } })
+        fetch(`${API_BASE_URL}/quiz/stats`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_BASE_URL}/quiz/history`, { headers: { 'Authorization': `Bearer ${token}` } })
       ]);
       if (statsRes.ok) {
         const statsData = await statsRes.json();
@@ -100,7 +100,7 @@ const PersonalizedLearning = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_BASE_URL}/api/quiz/start`, {
+      const res = await fetch(`${API_BASE_URL}/quiz/start`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -128,7 +128,7 @@ const PersonalizedLearning = () => {
     setQuizError(null);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_BASE_URL}/api/quiz/submit-answer`, {
+      const res = await fetch(`${API_BASE_URL}/quiz/submit-answer`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -159,7 +159,7 @@ const PersonalizedLearning = () => {
     setQuizError(null);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_BASE_URL}/api/quiz/evaluate-defense`, {
+      const res = await fetch(`${API_BASE_URL}/quiz/evaluate-defense`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -178,7 +178,7 @@ const PersonalizedLearning = () => {
 
       // Refresh stats & user profile
       fetchQuizStatsAndHistory();
-      const meRes = await fetch(`${API_BASE_URL}/api/auth/me`, {
+      const meRes = await fetch(`${API_BASE_URL}/auth/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (meRes.ok) {
@@ -199,7 +199,7 @@ const PersonalizedLearning = () => {
     setQuizError(null);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_BASE_URL}/api/quiz/next-question`, {
+      const res = await fetch(`${API_BASE_URL}/quiz/next-question`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
