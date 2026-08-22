@@ -14,8 +14,8 @@ const LiveDuelArena = ({ duel, socket, user, onLeave }) => {
 
   const getLanguageStub = (lang) => {
     if (lang === 'javascript') return duel?.problem?.functionSignature || '// Write your solution here\nfunction solve() {\n  \n}\n';
-    if (lang === 'java') return 'public class Solution {\n    // Ensure your function matches the required signature\n    public static void solve() {\n        \n    }\n}\n';
-    if (lang === 'cpp') return '#include <iostream>\nusing namespace std;\n\n// Ensure your function matches the required signature\nvoid solve() {\n    \n}\n';
+    if (lang === 'java') return duel?.problem?.javaSignature || 'public class Solution {\n    // Ensure your function matches the required signature\n    public static void solve() {\n        \n    }\n}\n';
+    if (lang === 'cpp') return duel?.problem?.cppSignature || '#include <iostream>\n#include <vector>\n#include <string>\nusing namespace std;\n\n// Ensure your function matches the required signature\nvoid solve() {\n    \n}\n';
     return '';
   };
 
@@ -282,7 +282,7 @@ const LiveDuelArena = ({ duel, socket, user, onLeave }) => {
           <div className="clay-card" style={{ flex: 1, padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <div className="flex justify-between items-center" style={{ padding: '1rem', background: 'var(--bg-secondary)', borderBottom: '2px solid var(--bg-primary)' }}>
               <div className="flex items-center gap-3">
-                <div style={{ fontSize: '0.875rem', fontWeight: 600 }}>main.js</div>
+                <div style={{ fontSize: '0.875rem', fontWeight: 600 }}>{language === 'cpp' ? 'main.cpp' : language === 'java' ? 'Main.java' : 'main.js'}</div>
               </div>
               <div className="flex gap-2 items-center">
                 <select 
@@ -317,7 +317,7 @@ const LiveDuelArena = ({ duel, socket, user, onLeave }) => {
             <div style={{ flex: 1 }}>
               <Editor
                 height="100%"
-                language="javascript"
+                language={language === 'cpp' ? 'cpp' : language === 'java' ? 'java' : 'javascript'}
                 theme="vs-dark"
                 value={code}
                 onChange={setCode}

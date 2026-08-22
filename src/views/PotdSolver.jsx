@@ -13,8 +13,8 @@ const PotdSolver = ({ potd, setActiveTab }) => {
 
   const getLanguageStub = (lang) => {
     if (lang === 'javascript') return potd?.functionSignature || '// Write your solution here\nfunction solve() {\n  \n}\n';
-    if (lang === 'java') return 'public class Solution {\n    // Ensure your function matches the required signature\n    public static void solve() {\n        \n    }\n}\n';
-    if (lang === 'cpp') return '#include <iostream>\nusing namespace std;\n\n// Ensure your function matches the required signature\nvoid solve() {\n    \n}\n';
+    if (lang === 'java') return potd?.javaSignature || 'public class Solution {\n    // Ensure your function matches the required signature\n    public static void solve() {\n        \n    }\n}\n';
+    if (lang === 'cpp') return potd?.cppSignature || '#include <iostream>\n#include <vector>\n#include <string>\nusing namespace std;\n\n// Ensure your function matches the required signature\nvoid solve() {\n    \n}\n';
     return '';
   };
 

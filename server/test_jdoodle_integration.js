@@ -465,6 +465,113 @@ addTest('16. Verify no local child_process calls are imported or used in judging
   assert.ok(!helperCode.includes('spawn('));
 });
 
+// 17. Java execution and compile errors
+addTest('17. Java compile error reports failure', async () => {
+  mockPostResponse = {
+    data: {
+      error: 'Solution.java:2: compile error: reached end of file while parsing',
+      statusCode: 400
+    }
+  };
+  mockPostError = null;
+
+  const result = await judgingService.executeCode('class Solution {', testProblem.sampleTests, 'java', 'two-sum');
+  assert.strictEqual(result.success, false);
+  assert.strictEqual(result.status, 'compile_error');
+});
+
+// 18. C++ execution and compile errors
+addTest('18. C++ compile error reports failure', async () => {
+  mockPostResponse = {
+    data: {
+      error: 'syntax error: expected ‘}’ at end of input',
+      statusCode: 400
+    }
+  };
+  mockPostError = null;
+
+  const result = await judgingService.executeCode('int main() {', testProblem.sampleTests, 'cpp', 'two-sum');
+  assert.strictEqual(result.success, false);
+  assert.strictEqual(result.status, 'compile_error');
+});
+
+// 19. Provider timeout
+addTest('19. Provider timeout reports failure', async () => {
+  mockPostResponse = null;
+  mockPostError = {
+    code: 'ECONNABORTED',
+    message: 'timeout of 8000ms exceeded'
+  };
+
+  const result = await judgingService.executeCode('while(true){}', testProblem.sampleTests, 'cpp', 'two-sum');
+  assert.strictEqual(result.success, false);
+  assert.strictEqual(result.status, 'timeout');
+});
+
+// 20. Unsupported MongoDB ObjectId fails closed
+addTest('20. Unsupported judge key fails closed', async () => {
+  const socket = createMockSocket('user_999');
+  const handlers = {};
+  
+  mockActiveDuels.set('duel_unsupported', {
+    id: 'duel_unsupported',
+    status: 'active',
+    players: [{ id: 'user_999', status: 'Ready', maxPassed: 0 }],
+    problem: { ...testProblem, id: '65b4c4f3e4b0', questionId: undefined }
+  });
+
+  const customSocket = {
+    id: 'socket_xyz',
+    userId: 'user_999',
+    on: (evt, cb) => { handlers[evt] = cb; },
+    emit: socket.emit,
+    join: () => {}
+  };
+
+  initDuelHandler(mockIo, customSocket, connectedUsers);
+
+  await handlers['run_code']({ duelId: 'duel_unsupported', code: 'console.log()', language: 'javascript' });
+  
+  const emits = socket.getEmits();
+  assert.ok(emits['run_code_result']);
+  assert.strictEqual(emits['run_code_result'].error, true);
+  assert.ok(emits['run_code_result'].output.includes('Provider configuration error'));
+});
+
+// 21. Java Sample Execution
+addTest('21. Java Sample Execution', async () => {
+  mockPostResponse = {
+    data: {
+      output: '[0,1]',
+      statusCode: 200,
+      cpuTime: '0.01',
+      memory: '2000'
+    }
+  };
+  mockPostError = null;
+
+  const result = await judgingService.executeCode('class Solution { public static int[] twoSum(int[] nums, int target) { return new int[]{0,1}; } }', testProblem.sampleTests, 'java', 'two-sum');
+  assert.strictEqual(result.success, true);
+  assert.strictEqual(result.passed, 1);
+});
+
+// 22. C++ Sample Execution
+addTest('22. C++ Sample Execution', async () => {
+  mockPostResponse = {
+    data: {
+      output: '[0,1]',
+      statusCode: 200,
+      cpuTime: '0.01',
+      memory: '2000'
+    }
+  };
+  mockPostError = null;
+
+  const result = await judgingService.executeCode('vector<int> twoSum(vector<int>& nums, int target) { return {0,1}; }', testProblem.sampleTests, 'cpp', 'two-sum');
+  assert.strictEqual(result.success, true);
+  assert.strictEqual(result.passed, 1);
+});
+
 // ==========================================
 // TEST EXECUTION RUNNER
 // ==========================================

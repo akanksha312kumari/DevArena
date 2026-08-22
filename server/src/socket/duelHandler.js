@@ -15,6 +15,13 @@ const activeRequests = new Set(); // set of userId
 const lastRequestTime = new Map(); // userId -> timestamp
 const duelsEvaluating = new Set(); // set of duelId
 
+const getJudgeKey = (problem) => {
+  const key = problem?.id || problem?.questionId;
+  const allowedKeys = ['two-sum', 'reverse-string', 'palindrome-number', 'valid-parentheses'];
+  if (allowedKeys.includes(key)) return key;
+  return null;
+};
+
 module.exports = (io, socket, connectedUsers) => {
   // --- Challenge Logic ---
   socket.on('send_challenge', (data) => {
@@ -322,6 +329,12 @@ module.exports = (io, socket, connectedUsers) => {
       return;
     }
 
+    const judgeKey = getJudgeKey(duel.problem);
+    if (!judgeKey) {
+      socket.emit('run_code_result', { error: true, output: 'Provider configuration error: Unsupported problem.' });
+      return;
+    }
+
     // Set request in progress
     activeRequests.add(userId);
     lastRequestTime.set(userId, startTime);
@@ -330,7 +343,7 @@ module.exports = (io, socket, connectedUsers) => {
       // Safe logging (no source code, secrets, or stdin logged)
       console.log(`[run_code] Request ${requestId}: User ${userId}, Duel ${duelId}, Language ${language}`);
       
-      const result = await judgingService.executeCode(code, duel.problem.sampleTests, language, duel.problem.id || duel.problem.questionId);
+      const result = await judgingService.executeCode(code, duel.problem.sampleTests, language, judgeKey);
       
       const duration = Date.now() - startTime;
       console.log(`[run_code] Success ${requestId}: Status ${result.status || 'success'}, Duration ${duration}ms`);
@@ -410,6 +423,12 @@ module.exports = (io, socket, connectedUsers) => {
       return;
     }
 
+    const judgeKey = getJudgeKey(duel.problem);
+    if (!judgeKey) {
+      socket.emit('submission_failed', { message: 'Provider configuration error: Unsupported problem.' });
+      return;
+    }
+
     // Set evaluating states
     activeRequests.add(userId);
     lastRequestTime.set(userId, startTime);
@@ -421,7 +440,7 @@ module.exports = (io, socket, connectedUsers) => {
     try {
       console.log(`[verify_submission] Request ${requestId}: User ${userId}, Duel ${duelId}, Language ${language}`);
       
-      const result = await judgingService.executeCode(code, duel.problem.hiddenTests, language, duel.problem.id || duel.problem.questionId);
+      const result = await judgingService.executeCode(code, duel.problem.hiddenTests, language, judgeKey);
       
       const duration = Date.now() - startTime;
       console.log(`[verify_submission] Success ${requestId}: Status ${result.status || 'success'}, Duration ${duration}ms`);

@@ -22,6 +22,8 @@ You can return the answer in any order.`,
       "Only one valid answer exists."
     ],
     functionSignature: "function twoSum(nums, target) {\n  // your code here\n}",
+    javaSignature: "class Solution {\n    public static int[] twoSum(int[] nums, int target) {\n        // your code here\n        return new int[0];\n    }\n}",
+    cppSignature: "vector<int> twoSum(vector<int>& nums, int target) {\n    // your code here\n    return {};\n}",
     sampleTests: [
       { input: "[ [2,7,11,15], 9 ]", expected: "[0,1]" },
       { input: "[ [3,2,4], 6 ]", expected: "[1,2]" }
@@ -50,6 +52,8 @@ You must do this by modifying the input array in-place with O(1) extra memory.`,
       "s[i] is a printable ascii character."
     ],
     functionSignature: "function reverseString(s) {\n  // your code here\n}",
+    javaSignature: "class Solution {\n    public static void reverseString(char[] s) {\n        // your code here\n    }\n}",
+    cppSignature: "void reverseString(vector<char>& s) {\n    // your code here\n}",
     sampleTests: [
       { input: "[ ['h','e','l','l','o'] ]", expected: "['o','l','l','e','h']" }
     ],
@@ -74,6 +78,8 @@ You must do this by modifying the input array in-place with O(1) extra memory.`,
       "-2^31 <= x <= 2^31 - 1"
     ],
     functionSignature: "function isPalindrome(x) {\n  // your code here\n}",
+    javaSignature: "class Solution {\n    public static boolean isPalindrome(int x) {\n        // your code here\n        return false;\n    }\n}",
+    cppSignature: "bool isPalindrome(int x) {\n    // your code here\n    return false;\n}",
     sampleTests: [
       { input: "[ 121 ]", expected: "true" },
       { input: "[ -121 ]", expected: "false" }
@@ -99,6 +105,8 @@ You must do this by modifying the input array in-place with O(1) extra memory.`,
       "1 <= s.length <= 10^4"
     ],
     functionSignature: "function isValid(s) {\n  // your code here\n}",
+    javaSignature: "class Solution {\n    public static boolean isValid(String s) {\n        // your code here\n        return false;\n    }\n}",
+    cppSignature: "bool isValid(string s) {\n    // your code here\n    return false;\n}",
     sampleTests: [
       { input: "[ '()' ]", expected: "true" },
       { input: "[ '()[]{}' ]", expected: "true" }
